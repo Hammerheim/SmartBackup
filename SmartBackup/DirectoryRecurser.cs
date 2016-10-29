@@ -9,11 +9,11 @@ namespace Vibe.Hammer.SmartBackup
 {
   internal class DirectoryRecurser : IDirectoryRecurser
   {
-    public async Task<bool> RecurseDirectory(DirectoryInfo root, Func<FileInfo, Task<bool>> fileHandler)
+    public async Task<bool> RecurseDirectory(DirectoryInfo root, IFileHandler fileHandler)
     {
       foreach (var file in root.GetFiles())
       {
-        var result = await fileHandler?.Invoke(file);
+        var result = await fileHandler.Handle(file);
         if (!result)
           return false;
       }

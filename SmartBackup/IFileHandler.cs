@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace Vibe.Hammer.SmartBackup
 {
-  public interface IDirectoryRecurser
+  public interface IFileHandler
   {
-    Task<bool> RecurseDirectory(DirectoryInfo root, IFileHandler fileHandler);
-
+    Task<bool> Handle(FileInfo info);
   }
 }
