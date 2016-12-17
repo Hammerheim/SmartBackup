@@ -15,7 +15,7 @@ namespace Vibe.Hammer.SmartBackup
     {
       this.hasher = hasher;
     }
-    public async Task<FileInformation> Gather(FileInfo file)
+    public async Task<FileInformation> Gather(FileInfo file, bool deepScan)
     {
       var info = new FileInformation
       {
@@ -23,7 +23,8 @@ namespace Vibe.Hammer.SmartBackup
         FileName = file.Name,
         LastModified = file.LastWriteTime,
         FilenameHash = file.FullName.GetHashCode(),
-        ContentHash = await hasher.GetHashString(file)
+        Size = file.Length,
+        ContentHash = await hasher.GetHashString(file, deepScan)
       };
       return info;
     }

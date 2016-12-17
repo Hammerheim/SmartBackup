@@ -21,6 +21,16 @@ namespace Vibe.Hammer.SmartBackup
       log.Append($"{fileInformation.Directory},{fileInformation.FileName},{fileInformation.LastModified},{fileInformation.FilenameHash},{fileInformation.ContentHash}");
     }
 
+    public Task Read(string logFile)
+    {
+      throw new NotImplementedException();
+    }
+
+    public Task Save(string logFile)
+    {
+      throw new NotImplementedException();
+    }
+
     public override string ToString()
     {
       return log.ToString();

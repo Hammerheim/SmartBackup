@@ -18,9 +18,9 @@ namespace Vibe.Hammer.SmartBackup
       this.logger = logger;
     }
 
-    public async Task<bool> Handle(FileInfo info)
+    public async Task<bool> Handle(FileInfo info, bool deepScan)
     {
-      var fileData = await gatherer.Gather(info);
+      var fileData = await gatherer.Gather(info, deepScan);
       if (fileData != null)
         logger.Log(fileData);
       return true;

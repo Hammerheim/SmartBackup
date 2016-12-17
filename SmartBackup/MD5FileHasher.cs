@@ -21,10 +21,25 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    public async Task<string> GetHashString(FileInfo file)
+    public async Task<string> GetHashString(FileInfo file, bool deepScan)
     {
-      var array = await GetHash(file);
-      return array != null ? ByteToString.ByteArrayToString(array) : string.Empty;
+      if (deepScan)
+      {
+        var array = await GetHash(file);
+        return array != null ? ByteToString.ByteArrayToString(array) : string.Empty;
+      }
+      return string.Empty;
     }
+
+    //public string ToHashString(string source)
+    //{
+    //  using (var md5 = MD5.Create())
+    //  {
+    //    using (var stream = new MemoryStream())
+    //    {
+    //      return await Task.Run(() => md5.ComputeHash(stream));
+    //    }
+    //  }
+    //}
   }
 }

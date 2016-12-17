@@ -44,6 +44,7 @@
     <Compile Include="DirectoryRecurser.cs" />
     <Compile Include="FileInformation.cs" />
     <Compile Include="FileInformationGatherer.cs" />
+    <Compile Include="FileTreeLog.cs" />
     <Compile Include="IDirectoryRecurser.cs" />
     <Compile Include="IFileHandler.cs" />
     <Compile Include="IFileHasher.cs" />

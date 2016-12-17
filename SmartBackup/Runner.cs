@@ -11,11 +11,11 @@ namespace Vibe.Hammer.SmartBackup
   {
     private IFileInformationGatherer gatherer = new FileInformationGatherer(new MD5FileHasher());
 
-    public async Task<IFileLog> Run(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, Action<double> progressCallback)
+    public async Task<IFileLog> Run(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, Action<double> progressCallback, bool deepScan)
     {
-      var logger = new SimpleFileLog();
+      var logger = new FileTreeLog();
       var recurser = new DirectoryRecurser();
-      var result = await recurser.RecurseDirectory(sourceRoot, new SimpleFileHandler(new FileInformationGatherer(new MD5FileHasher()), logger));
+      var result = await recurser.RecurseDirectory(sourceRoot, new SimpleFileHandler(new FileInformationGatherer(new MD5FileHasher()), logger), deepScan);
       if (result)
         return logger;
       return null;

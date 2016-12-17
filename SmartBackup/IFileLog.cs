@@ -10,6 +10,8 @@ namespace Vibe.Hammer.SmartBackup
   public interface IFileLog
   {
     void Log(FileInformation fileInformation);
-    Task<bool> FileHandler(FileInfo info);
+    Task Read(string logFile);
+    Task Save(string logFile);
+
   }
 }
