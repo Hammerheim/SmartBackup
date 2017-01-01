@@ -11,6 +11,14 @@ namespace Vibe.Hammer.SmartBackup
   {
     private StringBuilder log = new StringBuilder();
 
+    public IEnumerable<FileInformation> Files
+    {
+      get
+      {
+        return new List<FileInformation>();
+      }
+    }
+
     public Task<bool> FileHandler(FileInfo info)
     {
       throw new NotImplementedException();

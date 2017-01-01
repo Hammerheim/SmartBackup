@@ -11,6 +11,14 @@ namespace Vibe.Hammer.SmartBackup
   {
     private Dictionary<string, FileInformation> log = new Dictionary<string, FileInformation>();
 
+    public IEnumerable<FileInformation> Files
+    {
+      get
+      {
+        return log.Values;
+      }
+    }
+
     public void Log(FileInformation fileInformation)
     {
       if (log.ContainsKey(fileInformation.FullyQualifiedFilename))

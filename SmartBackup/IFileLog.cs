@@ -12,6 +12,6 @@ namespace Vibe.Hammer.SmartBackup
     void Log(FileInformation fileInformation);
     Task Read(string logFile);
     Task Save(string logFile);
-
+    IEnumerable<FileInformation> Files { get; }
   }
 }
