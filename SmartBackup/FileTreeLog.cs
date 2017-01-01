@@ -9,13 +9,13 @@ namespace Vibe.Hammer.SmartBackup
 {
   public class FileTreeLog : IFileLog
   {
-    private Dictionary<int, FileInformation> log = new Dictionary<int, FileInformation>();
+    private Dictionary<string, FileInformation> log = new Dictionary<string, FileInformation>();
 
     public void Log(FileInformation fileInformation)
     {
-      if (log.ContainsKey(fileInformation.FilenameHash))
-        throw new Exception($"Duplicate key in file logger. \r\nNew file is {fileInformation.FileName}\r\nExisting file is: {log[fileInformation.FilenameHash].FileName}");
-      log.Add(fileInformation.FilenameHash, fileInformation);
+      if (log.ContainsKey(fileInformation.FullyQualifiedFilename))
+        throw new Exception($"Duplicate key in file logger. \r\nNew file is {fileInformation.FileName}\r\nExisting file is: {log[fileInformation.FullyQualifiedFilename].FileName}");
+      log.Add(fileInformation.FullyQualifiedFilename, fileInformation);
     }
 
     public async Task Read(string logFile)
@@ -33,7 +33,7 @@ namespace Vibe.Hammer.SmartBackup
           {
             var line = await stream.ReadLineAsync();
             var item = new FileInformation(line);
-            log.Add(item.FilenameHash, item);
+            log.Add(item.FullyQualifiedFilename, item);
           } while (!stream.EndOfStream);
         }
       }

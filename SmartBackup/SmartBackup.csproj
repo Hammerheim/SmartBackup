@@ -40,6 +40,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BackupTarget.cs" />
+    <Compile Include="BackupTargetBuilder.cs" />
+    <Compile Include="BackupTargetItem.cs" />
+    <Compile Include="IBackupTargetBuilder.cs" />
     <Compile Include="ByteToString.cs" />
     <Compile Include="DirectoryRecurser.cs" />
     <Compile Include="FileInformation.cs" />

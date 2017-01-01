@@ -22,9 +22,9 @@ namespace Vibe.Hammer.SmartBackup
         Directory = file.Directory.FullName,
         FileName = file.Name,
         LastModified = file.LastWriteTime,
-        FilenameHash = file.FullName.GetHashCode(),
+        FullyQualifiedFilename = file.FullName,
         Size = file.Length,
-        ContentHash = await hasher.GetHashString(file, deepScan)
+        ContentHash = deepScan ? await hasher.GetHashString(file) : string.Empty
       };
       return info;
     }

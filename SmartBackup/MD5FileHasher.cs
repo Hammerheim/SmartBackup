@@ -10,6 +10,15 @@ namespace Vibe.Hammer.SmartBackup
 {
   internal class MD5FileHasher : IFileHasher
   {
+    public async Task<byte[]> GetHash(string source)
+    {
+      using (var md5 = MD5.Create())
+      {
+        var bytes = System.Text.Encoding.ASCII.GetBytes(source);
+        return await Task.Run(() => md5.ComputeHash(bytes));
+      }
+    }
+
     public async Task<byte[]> GetHash(FileInfo file)
     {
       using (var md5 = MD5.Create())
@@ -21,25 +30,25 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    public async Task<string> GetHashString(FileInfo file, bool deepScan)
+    public async Task<string> GetHashString(FileInfo file)
     {
-      if (deepScan)
-      {
         var array = await GetHash(file);
         return array != null ? ByteToString.ByteArrayToString(array) : string.Empty;
-      }
-      return string.Empty;
     }
 
-    //public string ToHashString(string source)
-    //{
-    //  using (var md5 = MD5.Create())
-    //  {
-    //    using (var stream = new MemoryStream())
-    //    {
-    //      return await Task.Run(() => md5.ComputeHash(stream));
-    //    }
-    //  }
-    //}
+    public async Task<string> GetHashString(string source)
+    {
+      var array = await GetHash(source);
+      return array != null ? ByteToString.ByteArrayToString(array) : string.Empty;
+    }
+
+    public async Task<string> ToHashString(string source)
+    {
+      using (var md5 = MD5.Create())
+      {
+        var bytes = System.Text.Encoding.ASCII.GetBytes(source);
+        return await GetHashString(source);
+      }
+    }
   }
 }
