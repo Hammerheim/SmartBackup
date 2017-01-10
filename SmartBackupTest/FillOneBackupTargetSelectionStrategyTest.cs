@@ -57,11 +57,12 @@ namespace Vibe.Hammer.SmartBackup.Test
     {
       // Arrange
       var sut = new FillOneBackupTargetSelectionStrategy(2);
-      BackupTarget backupTarget = new BackupTarget(2);
+      BackupTarget backupTarget = new BackupTarget(2, new System.IO.DirectoryInfo(@"c:\test\"), 1);
       backupTarget.AddFile(new FileInformation
       {
         Size = 2
       });
+
       List<IBackupTarget> targets = new List<IBackupTarget> { backupTarget };
 
       // act

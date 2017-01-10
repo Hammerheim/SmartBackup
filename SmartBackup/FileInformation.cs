@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Xml.Serialization;
 
 namespace Vibe.Hammer.SmartBackup
 {
+  [XmlType("FI")]
   public class FileInformation
   {
     public FileInformation()
@@ -21,11 +23,17 @@ namespace Vibe.Hammer.SmartBackup
       ContentHash = contentSections[5];
     }
 
+    [XmlElement("FQF")]
     public string FullyQualifiedFilename { get; set; }
+    [XmlAttribute("ch")]
     public string ContentHash { get; set; }
+    [XmlElement("D")]
     public string Directory { get; set; }
+    [XmlElement("FN")]
     public string FileName { get; set; }
+    [XmlAttribute("lm")]
     public DateTimeOffset LastModified { get; set; }
+    [XmlAttribute("s")]
     public long Size { get; set; }
 
     public override string ToString()

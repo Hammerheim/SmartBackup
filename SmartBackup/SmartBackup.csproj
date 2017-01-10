@@ -32,6 +32,8 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -41,13 +43,17 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BackupTarget.cs" />
+    <Compile Include="BackupTargetBinaryHandler.cs" />
     <Compile Include="BackupTargetExtensions.cs" />
     <Compile Include="BackupTargetStrategyBase.cs" />
+    <Compile Include="CompressionTypes.cs" />
+    <Compile Include="ContentCatalogue.cs" />
     <Compile Include="FileCopyExecutor.cs" />
     <Compile Include="FillOneBackupTargetSelectionStrategy.cs" />
     <Compile Include="IBackupTarget.cs" />
     <Compile Include="BackupTargetBuilder.cs" />
     <Compile Include="BackupTargetItem.cs" />
+    <Compile Include="IBackupTargetBinaryHandler.cs" />
     <Compile Include="IBackupTargetBuilder.cs" />
     <Compile Include="ByteToString.cs" />
     <Compile Include="DirectoryRecurser.cs" />
