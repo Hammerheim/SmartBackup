@@ -17,7 +17,15 @@ namespace Vibe.Hammer.SmartBackup
       var recurser = new DirectoryRecurser();
       var result = await recurser.RecurseDirectory(sourceRoot, new SimpleFileHandler(new FileInformationGatherer(new MD5FileHasher()), logger), deepScan);
       if (result)
+      {
+        var target = new BackupTarget(1024, targetRoot, 0);
+        foreach (var file in logger.Files)
+        {
+          await target.AddFile(file);
+        }
+        target.WriteCatalogue();
         return logger;
+      }
       return null;
     }
   }

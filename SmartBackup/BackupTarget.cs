@@ -58,6 +58,7 @@ namespace Vibe.Hammer.SmartBackup
         var success = await binaryHandler.InsertFile(item, new FileInfo(filename));
         if (success)
         {
+          tail = item.TargetOffset + item.TargetLength;
           // update log
           catalogue.Add(item);
         }

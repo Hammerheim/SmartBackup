@@ -13,5 +13,6 @@ namespace Vibe.Hammer.SmartBackup
     Task<bool> RemoveFile(BackupTargetItem file);
     Task<bool> Defragment();
     void WriteContentCatalogue(ContentCatalogue catalogue);
+    ContentCatalogue ReadContentCatalogue();
   }
 }

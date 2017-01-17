@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Vibe.Hammer.SmartBackup
 {
-  internal static class ByteToString
+  internal static class ByteConverter
   {
     public static string ByteArrayToString(byte[] ba)
     {

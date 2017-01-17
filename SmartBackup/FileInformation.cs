@@ -31,11 +31,16 @@ namespace Vibe.Hammer.SmartBackup
     public string Directory { get; set; }
     [XmlElement("FN")]
     public string FileName { get; set; }
-    [XmlAttribute("lm")]
+    [XmlIgnore]
     public DateTimeOffset LastModified { get; set; }
     [XmlAttribute("s")]
     public long Size { get; set; }
-
+    [XmlAttribute("lm")]
+    public string LastModifiedText
+    {
+      get { return LastModified.ToString("D"); }
+      set { LastModified = DateTimeOffset.Parse(value); }
+    }
     public override string ToString()
     {
       return $"{Directory},{FileName},{Size},{LastModified.ToString("D")},{FullyQualifiedFilename},{ContentHash}";

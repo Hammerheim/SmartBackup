@@ -33,13 +33,13 @@ namespace Vibe.Hammer.SmartBackup
     public async Task<string> GetHashString(FileInfo file)
     {
         var array = await GetHash(file);
-        return array != null ? ByteToString.ByteArrayToString(array) : string.Empty;
+        return array != null ? ByteConverter.ByteArrayToString(array) : string.Empty;
     }
 
     public async Task<string> GetHashString(string source)
     {
       var array = await GetHash(source);
-      return array != null ? ByteToString.ByteArrayToString(array) : string.Empty;
+      return array != null ? ByteConverter.ByteArrayToString(array) : string.Empty;
     }
 
     public async Task<string> ToHashString(string source)
