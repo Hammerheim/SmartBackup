@@ -38,12 +38,12 @@ namespace Vibe.Hammer.SmartBackup
     [XmlAttribute("lm")]
     public string LastModifiedText
     {
-      get { return LastModified.ToString("D"); }
+      get { return LastModified.ToString("O"); }
       set { LastModified = DateTimeOffset.Parse(value); }
     }
     public override string ToString()
     {
-      return $"{Directory},{FileName},{Size},{LastModified.ToString("D")},{FullyQualifiedFilename},{ContentHash}";
+      return $"{Directory},{FileName},{Size},{LastModified.ToString("O")},{FullyQualifiedFilename},{ContentHash}";
     }
   }
 }

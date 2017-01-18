@@ -29,5 +29,14 @@ namespace Vibe.Hammer.SmartBackup
 
     [XmlIgnore()]
     public Dictionary<string, BackupTargetItem> KeySearchContent { get; private set; }
+
+    public void RebuildSearchIndex()
+    {
+      KeySearchContent = new Dictionary<string, BackupTargetItem>();
+      foreach (var item in Content)
+      {
+        KeySearchContent.Add(item.File.FullyQualifiedFilename, item);
+      }
+    }
   }
 }

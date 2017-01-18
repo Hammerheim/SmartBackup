@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.IO.Compression;
 using System.Xml.Serialization;
 using System.Xml;
+using Vibe.Hammer.SmartBackup.Compression;
 
 namespace Vibe.Hammer.SmartBackup
 {
@@ -19,6 +20,7 @@ namespace Vibe.Hammer.SmartBackup
     private long maxLength;
     private long tail = 1256 * 1024;
     private string filename;
+    private CompressionHandler compressionHandler;
 
     public BackupTarget(long maxLengthInMegaBytes, DirectoryInfo backupDirectory, int id)
     {
@@ -32,6 +34,7 @@ namespace Vibe.Hammer.SmartBackup
         catalogue = binaryHandler.ReadContentCatalogue();
       else
         catalogue = new ContentCatalogue();
+      compressionHandler = new CompressionHandler();
     }
 
     public long Tail => tail;
@@ -52,7 +55,7 @@ namespace Vibe.Hammer.SmartBackup
         if (string.IsNullOrEmpty(filename))
           return;
 
-        item.Compressed = CompressFile(file, filename, fileCopyExecutor);
+        item.Compressed = await compressionHandler.CompressFile(filename);
         
         // Find location
         item.TargetOffset = tail;
@@ -73,28 +76,6 @@ namespace Vibe.Hammer.SmartBackup
     {
       var info = new FileInfo(filename);
       return info.Length;
-    }
-
-    private bool CompressFile(FileInformation file, string tempFileName, FileCopyExecutor fileCopyExecutor)
-    {
-      var archiveFilename = tempFileName + ".zip";
-
-      var sourceFile = new FileInfo(file.FullyQualifiedFilename);
-      if (CompressionTypes.IsCompressed(sourceFile.Extension))
-        return false;
-      // Compress file
-      using (FileStream fs = new FileStream(archiveFilename, FileMode.Create))
-      {
-        using (ZipArchive archive = new ZipArchive(fs, ZipArchiveMode.Create))
-        {
-          archive.CreateEntryFromFile(sourceFile.FullName, sourceFile.Name);
-        }
-      }
-      fileCopyExecutor.Delete();
-      File.Move(archiveFilename, tempFileName);
-
-      return true;
-
     }
 
     public bool CanContain(FileInformation file)

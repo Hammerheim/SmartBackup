@@ -47,6 +47,7 @@
     <Compile Include="BackupTargetExtensions.cs" />
     <Compile Include="BackupTargetStrategyBase.cs" />
     <Compile Include="CompressionTypes.cs" />
+    <Compile Include="Compression\CompressionHandler.cs" />
     <Compile Include="ContentCatalogue.cs" />
     <Compile Include="FileCopyExecutor.cs" />
     <Compile Include="FillOneBackupTargetSelectionStrategy.cs" />
@@ -61,6 +62,7 @@
     <Compile Include="FileInformationGatherer.cs" />
     <Compile Include="FileTreeLog.cs" />
     <Compile Include="IBackupTargetSelectionStrategy.cs" />
+    <Compile Include="Compression\ICompressionHandler.cs" />
     <Compile Include="IDirectoryRecurser.cs" />
     <Compile Include="IFileHandler.cs" />
     <Compile Include="IFileHasher.cs" />
