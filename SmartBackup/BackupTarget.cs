@@ -29,12 +29,13 @@ namespace Vibe.Hammer.SmartBackup
       if (!backupDirectory.Exists)
         backupDirectory.Create();
       var binaryInfo = new FileInfo(filename);
-      binaryHandler = new BackupTargetBinaryHandler(binaryInfo);
+      compressionHandler = new CompressionHandler();
+      binaryHandler = new BackupTargetBinaryHandler(binaryInfo, compressionHandler);
       if (binaryInfo.Exists)
         catalogue = binaryHandler.ReadContentCatalogue();
       else
         catalogue = new ContentCatalogue();
-      compressionHandler = new CompressionHandler();
+      
     }
 
     public long Tail => tail;
