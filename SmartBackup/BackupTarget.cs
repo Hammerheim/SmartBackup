@@ -22,12 +22,16 @@ namespace Vibe.Hammer.SmartBackup
 
     public BackupTarget(long maxLengthInMegaBytes, DirectoryInfo backupDirectory, int id)
     {
-      catalogue = new ContentCatalogue();
       this.maxLength = maxLengthInMegaBytes * 1024 * 1024;
       filename = Path.Combine(backupDirectory.FullName, $"BackupTarget.{id}.exe");
       if (!backupDirectory.Exists)
         backupDirectory.Create();
-      binaryHandler = new BackupTargetBinaryHandler(new FileInfo(filename));
+      var binaryInfo = new FileInfo(filename);
+      binaryHandler = new BackupTargetBinaryHandler(binaryInfo);
+      if (binaryInfo.Exists)
+        catalogue = binaryHandler.ReadContentCatalogue();
+      else
+        catalogue = new ContentCatalogue();
     }
 
     public long Tail => tail;
