@@ -33,13 +33,39 @@ namespace Vibe.Hammer.SmartBackup.Compression
       return true;
     }
 
-    public bool CompressStream(Stream source, Stream result)
+    //public async Task<bool> CompressStream(Stream source, Stream result)
+    //{
+    //  try
+    //  {
+    //    using (DeflateStream compressionStream = new DeflateStream(result, CompressionMode.Compress))
+    //    {
+    //      await source.CopyToAsync(compressionStream);
+    //    }
+    //    return true;
+    //  }
+    //  catch (Exception err)
+    //  {
+    //    return false;
+    //  }
+    //}
+
+    public async Task<bool> CompressStream(Stream source, Stream result)
     {
       try
       {
         using (DeflateStream compressionStream = new DeflateStream(result, CompressionMode.Compress))
         {
-          source.CopyTo(compressionStream);
+          byte[] buffer = new byte[100000];
+          
+          bool done = false;
+          do
+          {
+            var read = await source.ReadAsync(buffer, 0, 100000);
+            if (read < 100000)
+              done = true;
+            if (read > 0)
+              await compressionStream.WriteAsync(buffer, 0, read);
+          } while (!done);
         }
         return true;
       }
@@ -47,6 +73,16 @@ namespace Vibe.Hammer.SmartBackup.Compression
       {
         return false;
       }
+    }
+
+    public Task<bool> DecompressStream(Stream source, Stream result)
+    {
+      throw new NotImplementedException();
+    }
+
+    public Task<bool> DecompressStream(Stream source, Stream result, long offset, long length)
+    {
+      throw new NotImplementedException();
     }
 
     private void OverwriteFile(FileInfo fileToOverwrite, FileInfo fileToMove)

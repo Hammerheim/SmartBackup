@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Vibe.Hammer.SmartBackup.Catalogue;
 
 namespace Vibe.Hammer.SmartBackup
 {
@@ -12,7 +13,8 @@ namespace Vibe.Hammer.SmartBackup
     Task<bool> InsertFile(BackupTargetItem file, FileInfo sourceFile);
     Task<bool> RemoveFile(BackupTargetItem file);
     Task<bool> Defragment();
-    void WriteContentCatalogue(ContentCatalogue catalogue);
-    ContentCatalogue ReadContentCatalogue();
+    Task WriteContentCatalogue(ContentCatalogue catalogue);
+    Task<ContentCatalogue> ReadContentCatalogue();
+    bool BinaryFileExists { get; }
   }
 }

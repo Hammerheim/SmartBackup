@@ -42,18 +42,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BackupTarget.cs" />
-    <Compile Include="BackupTargetBinaryHandler.cs" />
-    <Compile Include="BackupTargetExtensions.cs" />
-    <Compile Include="BackupTargetStrategyBase.cs" />
+    <Compile Include="BackupTarget\BackupTarget.cs" />
+    <Compile Include="BackupTarget\BackupTargetBinaryHandler.cs" />
+    <Compile Include="BackupTarget\BackupTargetExtensions.cs" />
+    <Compile Include="BackupTarget\BackupTargetNotInitializedException.cs" />
+    <Compile Include="BackupTarget\BackupTargetStrategyBase.cs" />
+    <Compile Include="BackupTarget\InvalidBinaryTargetException.cs" />
     <Compile Include="CompressionTypes.cs" />
     <Compile Include="Compression\CompressionHandler.cs" />
-    <Compile Include="ContentCatalogue.cs" />
+    <Compile Include="Catalogue\IContentCatalogue.cs" />
+    <Compile Include="Catalogue\TargetContentCatalogue.cs" />
+    <Compile Include="Catalogue\ContentCatalogue.cs" />
     <Compile Include="FileCopyExecutor.cs" />
     <Compile Include="FillOneBackupTargetSelectionStrategy.cs" />
     <Compile Include="IBackupTarget.cs" />
-    <Compile Include="BackupTargetBuilder.cs" />
-    <Compile Include="BackupTargetItem.cs" />
+    <Compile Include="BackupTarget\BackupTargetBuilder.cs" />
+    <Compile Include="BackupTarget\BackupTargetItem.cs" />
     <Compile Include="IBackupTargetBinaryHandler.cs" />
     <Compile Include="IBackupTargetBuilder.cs" />
     <Compile Include="ByteToString.cs" />
@@ -76,6 +80,7 @@
     <Compile Include="SimpleFileHandler.cs" />
     <Compile Include="SimpleFileLog.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

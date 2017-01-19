@@ -53,27 +53,6 @@ namespace Vibe.Hammer.SmartBackup.Test
     }
 
     [Test]
-    public void SingleTargetReturnsFirst()
-    {
-      // Arrange
-      var sut = new FillOneBackupTargetSelectionStrategy(2);
-      BackupTarget backupTarget = new BackupTarget(2, new System.IO.DirectoryInfo(@"c:\test\"), 1);
-      backupTarget.AddFile(new FileInformation
-      {
-        Size = 2
-      });
-
-      List<IBackupTarget> targets = new List<IBackupTarget> { backupTarget };
-
-      // act
-      var result = sut.GetTargetWithRoom(targets, new FileInformation());
-
-      // Assert
-      Assert.IsNotNull(result);
-
-    }
-
-    [Test]
     public void MaxSizeMustBeAtLeastTwo()
     {
       // Arrange, Act and Assert

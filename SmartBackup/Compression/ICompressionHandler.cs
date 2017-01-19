@@ -5,12 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Vibe.Hammer.SmartBackup
+namespace Vibe.Hammer.SmartBackup.Compression
 {
   public interface ICompressionHandler
   {
     Task<bool> CompressFile(string fullyQualifiedFilename);
-    bool CompressStream(Stream source, Stream result);
+    Task<bool> CompressStream(Stream source, Stream result);
+    Task<bool> DecompressStream(Stream source, Stream result);
+    Task<bool> DecompressStream(Stream source, Stream result, long offset, long length);
 
   }
 }
