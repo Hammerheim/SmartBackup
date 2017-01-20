@@ -67,19 +67,20 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return newestItem;
     }
 
-    internal void EnsureTargetCatalogueExists(ContentCatalogue persistedCatalogue, int targetBinaryID)
+    internal void EnsureTargetCatalogueExists(ContentCatalogue persistedCatalogue, int targetBinaryID, BackupTarget backupTarget)
     {
       if (!SearchTargets.ContainsKey(targetBinaryID))
       {
         Add(persistedCatalogue.SearchTargets[targetBinaryID]);
+        persistedCatalogue.SearchTargets[targetBinaryID].BackupTarget = backupTarget;
       }
       else
       {
-        ReplaceTargetContentCatalogue(persistedCatalogue, targetBinaryID);
+        ReplaceTargetContentCatalogue(persistedCatalogue, targetBinaryID, backupTarget);
       }
     }
 
-    private void ReplaceTargetContentCatalogue(ContentCatalogue persistedCatalogue, int targetBinaryID)
+    private void ReplaceTargetContentCatalogue(ContentCatalogue persistedCatalogue, int targetBinaryID, BackupTarget backupTarget)
     {
       if (SearchTargets.ContainsKey(targetBinaryID))
       {
@@ -88,6 +89,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
           Targets.Remove(currentTarget);
         SearchTargets[targetBinaryID] = persistedCatalogue.SearchTargets[targetBinaryID];
         Add(persistedCatalogue.SearchTargets[targetBinaryID]);
+        persistedCatalogue.SearchTargets[targetBinaryID].BackupTarget = backupTarget;
       }
       else
         Add(persistedCatalogue.SearchTargets[targetBinaryID]);
@@ -140,7 +142,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       foreach (var target in Targets)
       {
-        Backup target er null
+        //Backup target er null
         await target.BackupTarget.WriteCatalogue();
       }
     }

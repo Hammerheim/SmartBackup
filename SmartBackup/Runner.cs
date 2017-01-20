@@ -37,9 +37,6 @@ namespace Vibe.Hammer.SmartBackup
           }
         }
         await contentCatalogue.CloseTargets();
-        //  await target.AddFile(file);
-        //}
-        //await target.WriteCatalogue();
         return logger;
       }
       return null;
