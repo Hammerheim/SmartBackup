@@ -9,6 +9,6 @@ namespace Vibe.Hammer.SmartBackup
 {
   public interface IFileHandler
   {
-    Task<bool> Handle(FileInfo info, bool deepScan);
+    Task<bool> Handle(FileInfo info, DirectoryInfo root, bool deepScan);
   }
 }

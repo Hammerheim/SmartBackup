@@ -13,6 +13,7 @@ namespace Vibe.Hammer.SmartBackup.Compression
     Task<bool> CompressStream(Stream source, Stream result);
     Task<bool> DecompressStream(Stream source, Stream result);
     Task<bool> DecompressStream(Stream source, Stream result, long offset, long length);
+    Task<FileInfo> DecompressFile(string fullyQualifiedFilename);
 
   }
 }

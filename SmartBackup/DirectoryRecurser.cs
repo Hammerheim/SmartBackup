@@ -11,19 +11,24 @@ namespace Vibe.Hammer.SmartBackup
   {
     public async Task<bool> RecurseDirectory(DirectoryInfo root, IFileHandler fileHandler, bool deepScan)
     {
-      foreach (var file in root.GetFiles())
+      return await InternalRecurser(root, root, fileHandler, deepScan);
+    }
+
+    private async Task<bool> InternalRecurser(DirectoryInfo currentRoot, DirectoryInfo originalRoot, IFileHandler fileHandler, bool deepScan)
+    {
+      foreach (var file in currentRoot.GetFiles())
       {
-        var result = await fileHandler.Handle(file, deepScan);
+        var result = await fileHandler.Handle(file, originalRoot, deepScan);
         if (!result)
           return false;
       }
 
-      foreach (var directory in root.GetDirectories())
+      foreach (var directory in currentRoot.GetDirectories())
       {
 
         try
         {
-          var result = await RecurseDirectory(directory, fileHandler, deepScan);
+          var result = await InternalRecurser(directory, originalRoot, fileHandler, deepScan);
           if (!result)
             return false;
         }
@@ -34,6 +39,7 @@ namespace Vibe.Hammer.SmartBackup
         }
       }
       return true;
+
     }
   }
 }

@@ -50,12 +50,17 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     public BackupTargetItem GetNewestVersion(FileInformation file)
     {
+      return GetNewestVersion(file.FullyQualifiedFilename);
+    }
+
+    public BackupTargetItem GetNewestVersion(string key)
+    {
       BackupTargetItem newestItem = null;
       foreach (var catalogue in Targets)
       {
-        if (catalogue.KeySearchContent.ContainsKey(file.FullyQualifiedFilename))
+        if (catalogue.KeySearchContent.ContainsKey(key))
         {
-          foreach (var item in catalogue.KeySearchContent[file.FullyQualifiedFilename])
+          foreach (var item in catalogue.KeySearchContent[key])
           {
             if (newestItem == null)
               newestItem = item;
@@ -147,6 +152,13 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
+    public async Task ExtractFile(BackupTargetItem item, DirectoryInfo extractionRoot)
+    {
+      var backupTarget = GetBackupTargetForFile(item.File);
+      if (backupTarget == null)
+        throw new FileNotFoundException();
+      await backupTarget.ExtractFile(item, extractionRoot);
+    }
     private async Task<BackupTarget> CreateNewBackupTarget()
     {
       var target = new BackupTarget();
@@ -164,6 +176,24 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
           return target.BackupTarget;
       }
       return null;
+    }
+
+    public List<string> GetUniqueFileKeys()
+    {
+      Dictionary<string, string> keys = new Dictionary<string, string>();
+      List<string> returnThis = new List<string>();
+      foreach (var target in Targets)
+      {
+        foreach (var file in target.Content)
+        {
+          if (!keys.ContainsKey(file.File.FullyQualifiedFilename))
+          {
+            keys.Add(file.File.FullyQualifiedFilename, string.Empty);
+            returnThis.Add(file.File.FullyQualifiedFilename);
+          }
+        }
+      }
+      return returnThis;
     }
   }
 }

@@ -33,22 +33,25 @@ namespace Vibe.Hammer.SmartBackup.Compression
       return true;
     }
 
-    //public async Task<bool> CompressStream(Stream source, Stream result)
-    //{
-    //  try
-    //  {
-    //    using (DeflateStream compressionStream = new DeflateStream(result, CompressionMode.Compress))
-    //    {
-    //      await source.CopyToAsync(compressionStream);
-    //    }
-    //    return true;
-    //  }
-    //  catch (Exception err)
-    //  {
-    //    return false;
-    //  }
-    //}
+    public async Task<FileInfo> DecompressFile(string fullyQualifiedFilename)
+    {
+      var targetFile = new FileInfo(fullyQualifiedFilename.Substring(0, fullyQualifiedFilename.Length - 4));
+      if (targetFile.Exists)
+        targetFile.Delete();
+      var archiveFilename = new FileInfo(fullyQualifiedFilename);
 
+      await Task.Run(() =>
+      {
+        using (ZipArchive archive = ZipFile.OpenRead(archiveFilename.FullName))
+        {
+          var entry = archive.Entries.FirstOrDefault();
+          if (entry != null)
+            entry.ExtractToFile(targetFile.FullName);
+        }
+      });
+
+      return targetFile;
+    }
     public async Task<bool> CompressStream(Stream source, Stream result)
     {
       try
