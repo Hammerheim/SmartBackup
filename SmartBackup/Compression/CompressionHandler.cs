@@ -10,35 +10,30 @@ namespace Vibe.Hammer.SmartBackup.Compression
 {
   internal class CompressionHandler : ICompressionHandler
   {
-    public async Task<bool> CompressFile(string fullyQualifiedFilename)
+    public async Task<FileInfo> CompressFile(FileInfo file)
     {
-      var sourceFile = new FileInfo(fullyQualifiedFilename);
-      var archiveFilename = new FileInfo(fullyQualifiedFilename + ".zip");
-
-      if (CompressionTypes.IsCompressed(sourceFile.Extension))
-        return false;
+      var archiveFile = new FileInfo(file.FullName + ".zip");
 
       await Task.Run(() =>
       {
-        using (FileStream fs = new FileStream(archiveFilename.FullName, FileMode.Create))
+        using (FileStream fs = new FileStream(archiveFile.FullName, FileMode.Create))
         {
           using (ZipArchive archive = new ZipArchive(fs, ZipArchiveMode.Create))
           {
-            archive.CreateEntryFromFile(sourceFile.FullName, sourceFile.Name);
+            archive.CreateEntryFromFile(file.FullName, file.Name);
           }
         }
       });
-
-      OverwriteFile(sourceFile, archiveFilename);
-      return true;
+      
+      return archiveFile;
     }
 
-    public async Task<FileInfo> DecompressFile(string fullyQualifiedFilename)
+    public async Task<FileInfo> DecompressFile(FileInfo file)
     {
-      var targetFile = new FileInfo(fullyQualifiedFilename.Substring(0, fullyQualifiedFilename.Length - 4));
+      var targetFile = new FileInfo(Path.GetTempFileName());
       if (targetFile.Exists)
         targetFile.Delete();
-      var archiveFilename = new FileInfo(fullyQualifiedFilename);
+      var archiveFilename = new FileInfo(file.FullName);
 
       await Task.Run(() =>
       {
@@ -49,7 +44,8 @@ namespace Vibe.Hammer.SmartBackup.Compression
             entry.ExtractToFile(targetFile.FullName);
         }
       });
-
+      targetFile.IsReadOnly = false;
+      GC.WaitForPendingFinalizers();
       return targetFile;
     }
     public async Task<bool> CompressStream(Stream source, Stream result)
@@ -90,10 +86,31 @@ namespace Vibe.Hammer.SmartBackup.Compression
 
     private void OverwriteFile(FileInfo fileToOverwrite, FileInfo fileToMove)
     {
-      GC.WaitForPendingFinalizers();
-      File.Delete(fileToOverwrite.FullName);
-      GC.WaitForPendingFinalizers();
-      File.Move(fileToMove.FullName, fileToOverwrite.FullName);
+      try
+      {
+        GC.WaitForPendingFinalizers();
+        File.Delete(fileToOverwrite.FullName);
+        GC.WaitForPendingFinalizers();
+      }
+      catch (UnauthorizedAccessException err)
+      {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+      }
+      try
+      {
+        File.Delete(fileToOverwrite.FullName);
+        File.Move(fileToMove.FullName, fileToOverwrite.FullName);
+      }
+      catch (Exception err)
+      {
+        throw;
+      }
+    }
+
+    public bool ShouldCompress(FileInfo file)
+    {
+      return !CompressionTypes.IsCompressed(file.Extension);
     }
   }
 }

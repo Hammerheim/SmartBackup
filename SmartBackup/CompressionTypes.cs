@@ -40,6 +40,10 @@ namespace Vibe.Hammer.SmartBackup
         case ".zip":
         case ".zipx":
         case ".zoo":
+
+        // Images
+        case ".jpg":
+        case ".jpeg":
           return true;
         default:
           return false;

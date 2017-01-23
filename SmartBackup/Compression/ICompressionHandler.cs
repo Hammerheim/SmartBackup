@@ -9,11 +9,12 @@ namespace Vibe.Hammer.SmartBackup.Compression
 {
   public interface ICompressionHandler
   {
-    Task<bool> CompressFile(string fullyQualifiedFilename);
+    bool ShouldCompress(FileInfo file);
+    Task<FileInfo> CompressFile(FileInfo fullyQualifiedFilename);
     Task<bool> CompressStream(Stream source, Stream result);
     Task<bool> DecompressStream(Stream source, Stream result);
     Task<bool> DecompressStream(Stream source, Stream result, long offset, long length);
-    Task<FileInfo> DecompressFile(string fullyQualifiedFilename);
+    Task<FileInfo> DecompressFile(FileInfo fullyQualifiedFilename);
 
   }
 }
