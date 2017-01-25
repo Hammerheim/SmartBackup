@@ -154,7 +154,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     public async Task ExtractFile(BackupTargetItem item, DirectoryInfo extractionRoot)
     {
-      var backupTarget = GetBackupTargetForFile(item.File);
+      var backupTarget = GetBackupTargetContainingFile(item.File);
       if (backupTarget == null)
         throw new FileNotFoundException();
       await backupTarget.ExtractFile(item, extractionRoot);
@@ -176,6 +176,11 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
           return target.BackupTarget;
       }
       return null;
+    }
+
+    private BackupTarget GetBackupTargetContainingFile(FileInformation file)
+    {
+      return Targets.FirstOrDefault(t => t.BackupTarget.Contains(file.FullyQualifiedFilename)).BackupTarget;
     }
 
     public List<string> GetUniqueFileKeys()
