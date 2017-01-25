@@ -45,11 +45,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BackupTarget\BackupTarget.cs" />
-    <Compile Include="BackupTarget\BackupTargetBinaryHandler.cs" />
-    <Compile Include="BackupTarget\BackupTargetExtensions.cs" />
-    <Compile Include="BackupTarget\BackupTargetNotInitializedException.cs" />
-    <Compile Include="BackupTarget\BackupTargetStrategyBase.cs" />
+    <Compile Include="Target\BackupTarget.cs" />
+    <Compile Include="Target\BackupTargetBinaryHandler.cs" />
+    <Compile Include="Target\BackupTargetExtensions.cs" />
+    <Compile Include="Target\BackupTargetNotInitializedException.cs" />
+    <Compile Include="Target\BackupTargetStrategyBase.cs" />
     <Compile Include="InvalidBinaryTargetException.cs" />
     <Compile Include="CompressionTypes.cs" />
     <Compile Include="Compression\CompressionHandler.cs" />
@@ -60,8 +60,8 @@
     <Compile Include="FileInfoExtensions.cs" />
     <Compile Include="FillOneBackupTargetSelectionStrategy.cs" />
     <Compile Include="IBackupTarget.cs" />
-    <Compile Include="BackupTarget\BackupTargetBuilder.cs" />
-    <Compile Include="BackupTarget\BackupTargetItem.cs" />
+    <Compile Include="Target\BackupTargetBuilder.cs" />
+    <Compile Include="Target\BackupTargetItem.cs" />
     <Compile Include="IBackupTargetBinaryHandler.cs" />
     <Compile Include="IBackupTargetBuilder.cs" />
     <Compile Include="ByteToString.cs" />
