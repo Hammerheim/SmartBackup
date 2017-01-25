@@ -45,6 +45,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Progress\ActionTypes.cs" />
+    <Compile Include="Progress\ProgressReport.cs" />
     <Compile Include="Target\BackupTarget.cs" />
     <Compile Include="Target\BackupTargetBinaryHandler.cs" />
     <Compile Include="Target\BackupTargetExtensions.cs" />

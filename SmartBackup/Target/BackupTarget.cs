@@ -127,10 +127,10 @@ namespace Vibe.Hammer.SmartBackup
       throw new NotImplementedException();
     }
 
-    public async Task WriteCatalogue()
+    public async Task WriteCatalogue(bool closeStreams)
     {
       EnsureInitialized();
-      await binaryHandler.WriteContentCatalogue(catalogue);
+      await binaryHandler.WriteContentCatalogue(catalogue, closeStreams);
     }
 
     public async Task Initialize(int maxLengthInMegaBytes, DirectoryInfo backupDirectory, int id, ContentCatalogue catalogue)

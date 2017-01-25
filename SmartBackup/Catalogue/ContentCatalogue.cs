@@ -148,10 +148,17 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       foreach (var target in Targets)
       {
         //Backup target er null
-        await target.BackupTarget.WriteCatalogue();
+        await target.BackupTarget.WriteCatalogue(true);
       }
     }
-
+    public async Task WriteCatalogue()
+    {
+      foreach (var target in Targets)
+      {
+        //Backup target er null
+        await target.BackupTarget.WriteCatalogue(false);
+      }
+    }
     public async Task ExtractFile(BackupTargetItem item, DirectoryInfo extractionRoot)
     {
       var backupTarget = GetBackupTargetContainingFile(item.File);

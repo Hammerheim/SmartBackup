@@ -167,7 +167,7 @@ namespace Vibe.Hammer.SmartBackup
       throw new NotImplementedException();
     }
 
-    public async Task WriteContentCatalogue(ContentCatalogue catalogue)
+    public async Task WriteContentCatalogue(ContentCatalogue catalogue, bool closeStreams)
     {
       try
       {
@@ -196,7 +196,8 @@ namespace Vibe.Hammer.SmartBackup
           targetStream.Write(resultBuffer, 0, (int)contentLength);
         }
 
-        CloseStream();
+        if (closeStreams)
+          CloseStream();
       }
       catch (Exception err)
       {

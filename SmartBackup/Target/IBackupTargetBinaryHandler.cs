@@ -13,7 +13,7 @@ namespace Vibe.Hammer.SmartBackup
     Task<bool> InsertFile(BackupTargetItem file, FileInfo sourceFile);
     Task<bool> RemoveFile(BackupTargetItem file);
     Task<bool> Defragment();
-    Task WriteContentCatalogue(ContentCatalogue catalogue);
+    Task WriteContentCatalogue(ContentCatalogue catalogue, bool closeStreams);
     Task<ContentCatalogue> ReadContentCatalogue();
     bool BinaryFileExists { get; }
     Task ExtractFile(BackupTargetItem file, DirectoryInfo extractionRoot);

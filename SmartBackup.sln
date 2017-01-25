@@ -5,8 +5,6 @@ VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartBackup", "SmartBackup\SmartBackup.csproj", "{33A926EA-DA49-4B83-9949-380567DA20AD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backup", "Backup\Backup.csproj", "{8B82C49A-3C4F-48A9-AEE2-F38EFF15564C}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartBackupTest", "SmartBackupTest\SmartBackupTest.csproj", "{EE9D1B15-85A8-4588-AAF5-51B62AC50BE0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Extractor", "Extractor\Extractor.csproj", "{AF90BF60-B242-4BB0-BE81-F6C5211EBA36}"
@@ -21,10 +19,6 @@ Global
 		{33A926EA-DA49-4B83-9949-380567DA20AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{33A926EA-DA49-4B83-9949-380567DA20AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{33A926EA-DA49-4B83-9949-380567DA20AD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8B82C49A-3C4F-48A9-AEE2-F38EFF15564C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8B82C49A-3C4F-48A9-AEE2-F38EFF15564C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8B82C49A-3C4F-48A9-AEE2-F38EFF15564C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8B82C49A-3C4F-48A9-AEE2-F38EFF15564C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EE9D1B15-85A8-4588-AAF5-51B62AC50BE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EE9D1B15-85A8-4588-AAF5-51B62AC50BE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EE9D1B15-85A8-4588-AAF5-51B62AC50BE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
