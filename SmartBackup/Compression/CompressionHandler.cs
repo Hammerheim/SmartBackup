@@ -5,50 +5,134 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Vibe.Hammer.SmartBackup.Progress;
 
 namespace Vibe.Hammer.SmartBackup.Compression
 {
   internal class CompressionHandler : ICompressionHandler
   {
-    public async Task<FileInfo> CompressFile(FileInfo file)
+    public virtual async Task<bool> CompressFile(FileInfo sourceFile, FileInfo targetFile, CompressionModes mode)
     {
-      var archiveFile = new FileInfo(file.FullName + ".zip");
+      if (mode == CompressionModes.Archive)
+        return await CompressFileAsArchive(sourceFile, targetFile);
+      else if (mode == CompressionModes.Stream)
+        return await CompressFileAsStream(sourceFile, targetFile);
+      return false;
+    }
 
-      await Task.Run(() =>
+    private async Task<bool> CompressFileAsStream(FileInfo sourceFile, FileInfo targetFile)
+    {
+      try
       {
-        using (FileStream fs = new FileStream(archiveFile.FullName, FileMode.Create))
+        using (var targetStream = targetFile.OpenWrite())
         {
-          using (ZipArchive archive = new ZipArchive(fs, ZipArchiveMode.Create))
+          using (var sourceStream = sourceFile.OpenRead())
           {
-            archive.CreateEntryFromFile(file.FullName, file.Name);
+            using (var compressionStream = new DeflateStream(targetStream, CompressionMode.Compress))
+            {
+              await sourceStream.CopyToAsync(compressionStream);
+            }
           }
         }
-      });
-      
-      return archiveFile;
-    }
-
-    public async Task<FileInfo> DecompressFile(FileInfo file)
-    {
-      var targetFile = new FileInfo(Path.GetTempFileName());
-      if (targetFile.Exists)
-        targetFile.Delete();
-      var archiveFilename = new FileInfo(file.FullName);
-
-      await Task.Run(() =>
+        return true;
+      }
+      catch (Exception err)
       {
-        using (ZipArchive archive = ZipFile.OpenRead(archiveFilename.FullName))
-        {
-          var entry = archive.Entries.FirstOrDefault();
-          if (entry != null)
-            entry.ExtractToFile(targetFile.FullName);
-        }
-      });
-      targetFile.IsReadOnly = false;
-      GC.WaitForPendingFinalizers();
-      return targetFile;
+        throw new FileCompressionAsStramFailedException(sourceFile.FullName, err);
+      }
     }
-    public async Task<bool> CompressStream(Stream source, Stream result)
+
+    private async Task<bool> CompressFileAsArchive(FileInfo sourceFile, FileInfo targetFile)
+    {
+      try
+      {
+        await Task.Run(() =>
+        {
+          using (FileStream fs = new FileStream(targetFile.FullName, FileMode.Create))
+          {
+            using (ZipArchive archive = new ZipArchive(fs, ZipArchiveMode.Create))
+            {
+              archive.CreateEntryFromFile(sourceFile.FullName, sourceFile.Name);
+            }
+          }
+        });
+        return true;
+      }
+      catch (Exception err)
+      {
+        throw new FileCompressionAsArchiveFailedException(sourceFile.FullName, err);
+      }
+    }
+
+    public virtual async Task<bool> DecompressFile(FileInfo compressedFile, FileInfo sourceFile, CompressionModes mode)
+    {
+      if (mode == CompressionModes.Archive)
+        return await DecompressFileArchive(compressedFile, sourceFile);
+      else if (mode == CompressionModes.Stream)
+        return await DecompressFileStream(compressedFile, sourceFile);
+      return false;
+
+    }
+
+    private async Task<bool> DecompressFileStream(FileInfo compressedFile, FileInfo targetFile)
+    {
+      try
+      {
+        using (var targetStream = targetFile.Create())
+        {
+          using (var sourceStream = compressedFile.OpenRead())
+          {
+            using (DeflateStream compressedStream = new DeflateStream(sourceStream, CompressionMode.Decompress))
+            {
+              await compressedStream.CopyToAsync(targetStream);
+            }
+          }
+        }
+        targetFile.IsReadOnly = false;
+        GC.WaitForPendingFinalizers();
+        return true;
+      }
+      catch (Exception err)
+      {
+        throw new DecompressionOfStreamFailedException(targetFile.FullName, err);
+      }
+    }
+
+
+    private async Task<bool> DecompressFileArchive(FileInfo compressedFile, FileInfo targetFile)
+    {
+      try
+      {
+        await Task.Run(() =>
+        {
+          using (ZipArchive archive = ZipFile.OpenRead(compressedFile.FullName))
+          {
+            var entry = archive.Entries.FirstOrDefault();
+            if (entry != null)
+              entry.ExtractToFile(targetFile.FullName);
+          }
+        });
+        targetFile.IsReadOnly = false;
+        GC.WaitForPendingFinalizers();
+        return true;
+      }
+      catch (Exception err)
+      {
+        throw new DecompressionOfStreamFailedException(targetFile.FullName, err);
+      }
+    }
+
+    public virtual Task<bool> DecompressStream(Stream source, Stream result)
+    {
+      throw new NotImplementedException();
+    }
+
+    public virtual Task<bool> DecompressStream(Stream source, Stream result, long offset, long length)
+    {
+      throw new NotImplementedException();
+    }
+
+    public virtual async Task<bool> CompressStream(Stream source, Stream result)
     {
       try
       {
@@ -72,16 +156,6 @@ namespace Vibe.Hammer.SmartBackup.Compression
       {
         return false;
       }
-    }
-
-    public Task<bool> DecompressStream(Stream source, Stream result)
-    {
-      throw new NotImplementedException();
-    }
-
-    public Task<bool> DecompressStream(Stream source, Stream result, long offset, long length)
-    {
-      throw new NotImplementedException();
     }
 
     private void OverwriteFile(FileInfo fileToOverwrite, FileInfo fileToMove)
@@ -108,9 +182,9 @@ namespace Vibe.Hammer.SmartBackup.Compression
       }
     }
 
-    public bool ShouldCompress(FileInfo file)
+    public virtual bool ShouldCompress(FileInfo file)
     {
-      return !CompressionTypes.IsCompressed(file.Extension);
+      return !CompressedFileTypes.IsCompressed(file.Extension);
     }
   }
 }

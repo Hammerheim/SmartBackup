@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Vibe.Hammer.SmartBackup
+namespace Vibe.Hammer.SmartBackup.Compression
 {
-  internal static class CompressionTypes
+  internal static class CompressedFileTypes
   {
     public static bool IsCompressed(string fileExtension)
     {
@@ -44,6 +44,16 @@ namespace Vibe.Hammer.SmartBackup
         // Images
         case ".jpg":
         case ".jpeg":
+
+        // Documents
+        case ".docx":
+        case ".docm":
+        case ".doct":
+        case ".xlsx":
+        case ".xlsm":
+        case ".xlst":
+        case ".pptx":
+        case ".pptm":
           return true;
         default:
           return false;

@@ -42,31 +42,31 @@ namespace Vibe.Hammer.SmartBackup
 
     private async Task InsertFile(FileInformation file)
     {
-      using (FileCopyExecutor fileCopyExecutor = new FileCopyExecutor())
+      var item = new BackupTargetItem
       {
-        var item = new BackupTargetItem
-        {
-          File = file,
-          TargetOffset = tail
-        };
+        File = file,
+        TargetOffset = tail
+      };
 
-        var tempFile = await fileCopyExecutor.CopyFile(file.FullyQualifiedFilename);
-        if (tempFile == null)
-          return;
+      var sourceFile = new FileInfo(file.FullyQualifiedFilename);
 
-        item.Compressed = compressionHandler.ShouldCompress(new FileInfo(file.FullyQualifiedFilename));
-        if (item.Compressed)
-        {
-          var compressedFile = await compressionHandler.CompressFile(tempFile);
-          item.TargetLength = GetFileSize(compressedFile);
-          await InsertBinary(item, compressedFile);
+      item.Compressed = compressionHandler.ShouldCompress(sourceFile);
+      if (item.Compressed)
+      {
+        var tempFile = new FileInfo(Path.GetTempFileName());
+        if (!await compressionHandler.CompressFile(sourceFile, tempFile, CompressionModes.Stream))
+          throw new AddFileToArchiveException("Unable to compress file");
 
-        }
-        else
-        {
-          item.TargetLength = GetFileSize(tempFile);
-          await InsertBinary(item, tempFile);
-        }
+        item.TargetLength = GetFileSize(tempFile);
+        await InsertBinary(item, tempFile);
+        GC.WaitForPendingFinalizers();
+        tempFile.Delete();
+
+      }
+      else
+      {
+        item.TargetLength = GetFileSize(sourceFile);
+        await InsertBinary(item, sourceFile);
       }
     }
 
@@ -166,7 +166,26 @@ namespace Vibe.Hammer.SmartBackup
 
     public async Task ExtractFile(BackupTargetItem file, DirectoryInfo extractionRoot)
     {
-      await binaryHandler.ExtractFile(file, extractionRoot);
+      var tempFile = await binaryHandler.ExtractFile(file);
+      if (tempFile != null)
+      {
+        var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, file.File.RelativePath, file.File.FileName));
+        targetFile.Directory.Create();
+        if (file.Compressed)
+        {
+          try
+          {
+            await compressionHandler.DecompressFile(tempFile, targetFile, CompressionModes.Stream);
+          }
+          finally
+          {
+            tempFile.Delete();
+          }
+        }
+        else
+          tempFile.MoveTo(targetFile.FullName);
+        GC.WaitForPendingFinalizers();
+      }
     }
   }
 }

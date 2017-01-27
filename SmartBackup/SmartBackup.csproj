@@ -45,15 +45,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Compression\DecompressionOfStreamFailedException.cs" />
+    <Compile Include="Compression\FileCompressionAsArchiveFailedException.cs" />
+    <Compile Include="Compression\FileCompressionAsStramFailedException.cs" />
     <Compile Include="Progress\ActionTypes.cs" />
+    <Compile Include="Compression\CompressionModes.cs" />
     <Compile Include="Progress\ProgressReport.cs" />
+    <Compile Include="Target\AddFileToArchiveException.cs" />
     <Compile Include="Target\BackupTarget.cs" />
     <Compile Include="Target\BackupTargetBinaryHandler.cs" />
     <Compile Include="Target\BackupTargetExtensions.cs" />
     <Compile Include="Target\BackupTargetNotInitializedException.cs" />
     <Compile Include="Target\BackupTargetStrategyBase.cs" />
     <Compile Include="InvalidBinaryTargetException.cs" />
-    <Compile Include="CompressionTypes.cs" />
+    <Compile Include="Compression\CompressedFileTypes.cs" />
     <Compile Include="Compression\CompressionHandler.cs" />
     <Compile Include="Catalogue\IContentCatalogue.cs" />
     <Compile Include="Catalogue\TargetContentCatalogue.cs" />

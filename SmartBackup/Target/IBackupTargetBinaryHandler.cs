@@ -16,6 +16,6 @@ namespace Vibe.Hammer.SmartBackup
     Task WriteContentCatalogue(ContentCatalogue catalogue, bool closeStreams);
     Task<ContentCatalogue> ReadContentCatalogue();
     bool BinaryFileExists { get; }
-    Task ExtractFile(BackupTargetItem file, DirectoryInfo extractionRoot);
+    Task<FileInfo> ExtractFile(BackupTargetItem file);
   }
 }

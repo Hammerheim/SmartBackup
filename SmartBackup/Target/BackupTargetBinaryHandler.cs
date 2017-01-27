@@ -71,7 +71,7 @@ namespace Vibe.Hammer.SmartBackup
       return false;
     }
 
-    public async Task ExtractFile(BackupTargetItem file, DirectoryInfo extractionRoot)
+    public async Task<FileInfo> ExtractFile(BackupTargetItem file)
     {
       var tempFilename = Path.GetTempFileName() + ".zip";
       try
@@ -82,39 +82,36 @@ namespace Vibe.Hammer.SmartBackup
             throw new IndexOutOfRangeException();
 
           targetStream.Seek(file.TargetOffset, SeekOrigin.Begin);
-          using (var fileStream = new FileStream(tempFilename, FileMode.Create))
-          {
-            var buffer = new byte[1000000];
-            var missing = file.TargetLength;
-            do
-            {
-              var expectToRead = (int)Math.Min(missing, 1000000);
-              var read = targetStream.Read(buffer, 0, expectToRead);
-              if (read > 0)
-              {
-                await fileStream.WriteAsync(buffer, 0, read);
-                missing -= read;
-              }
-            } while (missing > 0);
-          }
-          GC.WaitForPendingFinalizers();
-          var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, file.File.RelativePath, file.File.FileName));
-          targetFile.Directory.Create();
-          if (file.Compressed)
-          {
-            var newFilename = await compressionHandler.DecompressFile(new FileInfo(tempFilename));
-            tempFilename = newFilename.FullName;
-          }
-          File.Move(tempFilename, targetFile.FullName);
+          await CopyBytesToFile(file, tempFilename);
+          return new FileInfo(tempFilename);
         }
+        return null;
       }
       catch (Exception err)
       {
-
         throw;
       }
     }
 
+    private async Task CopyBytesToFile(BackupTargetItem file, string tempFilename)
+    {
+      using (var fileStream = new FileStream(tempFilename, FileMode.Create))
+      {
+        var buffer = new byte[1000000];
+        var missing = file.TargetLength;
+        do
+        {
+          var expectToRead = (int)Math.Min(missing, 1000000);
+          var read = targetStream.Read(buffer, 0, expectToRead);
+          if (read > 0)
+          {
+            await fileStream.WriteAsync(buffer, 0, read);
+            missing -= read;
+          }
+        } while (missing > 0);
+      }
+      GC.WaitForPendingFinalizers();
+    }
 
     private bool OpenStreamForWriting()
     {
