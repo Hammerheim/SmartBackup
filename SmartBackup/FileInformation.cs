@@ -34,14 +34,14 @@ namespace Vibe.Hammer.SmartBackup
     [XmlElement("FN")]
     public string FileName { get; set; }
     [XmlIgnore]
-    public DateTimeOffset LastModified { get; set; }
+    public DateTime LastModified { get; set; }
     [XmlAttribute("s")]
     public long Size { get; set; }
     [XmlAttribute("lm")]
     public string LastModifiedText
     {
-      get { return LastModified.ToString("O"); }
-      set { LastModified = DateTimeOffset.Parse(value); }
+      get { return LastModified.ToString("o"); }
+      set { LastModified = DateTime.Parse(value); }
     }
     [XmlAttribute("v")]
     public int Version { get; set; }
@@ -50,7 +50,7 @@ namespace Vibe.Hammer.SmartBackup
     public string RelativePath { get; set; }
     public override string ToString()
     {
-      return $"{Directory},{FileName},{Size},{LastModified.ToString("O")},{FullyQualifiedFilename},{ContentHash},{Version},{RelativePath}";
+      return $"{Directory},{FileName},{Size},{LastModified.ToString("o")},{FullyQualifiedFilename},{ContentHash},{Version},{RelativePath}";
     }
   }
 }

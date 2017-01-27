@@ -184,6 +184,7 @@ namespace Vibe.Hammer.SmartBackup
         }
         else
           tempFile.MoveTo(targetFile.FullName);
+        File.SetLastWriteTime(targetFile.FullName, file.File.LastModified);
         GC.WaitForPendingFinalizers();
       }
     }
