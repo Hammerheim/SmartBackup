@@ -21,8 +21,7 @@ namespace Vibe.Hammer.SmartBackup
       LastModified = DateTime.Parse(contentSections[3]);
       FullyQualifiedFilename = contentSections[4];
       ContentHash = contentSections[5];
-      Version = int.Parse(contentSections[6]);
-      RelativePath = contentSections[7];
+      RelativePath = contentSections[6];
     }
 
     [XmlElement("FQF")]
@@ -43,14 +42,12 @@ namespace Vibe.Hammer.SmartBackup
       get { return LastModified.ToString("o"); }
       set { LastModified = DateTime.Parse(value); }
     }
-    [XmlAttribute("v")]
-    public int Version { get; set; }
 
     [XmlElement("rp")]
     public string RelativePath { get; set; }
     public override string ToString()
     {
-      return $"{Directory},{FileName},{Size},{LastModified.ToString("o")},{FullyQualifiedFilename},{ContentHash},{Version},{RelativePath}";
+      return $"{Directory},{FileName},{Size},{LastModified.ToString("o")},{FullyQualifiedFilename},{ContentHash},{RelativePath}";
     }
   }
 }

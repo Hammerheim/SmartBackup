@@ -101,7 +101,7 @@ namespace Vibe.Hammer.SmartBackup
         await catalogue.ExtractFile(file, target);
         if (DateTime.Now - lastReport > TimeSpan.FromSeconds(5))
         {
-          Console.WriteLine($"{Math.Round(fileNumber / (double)numberOfFiles * 100)}% {file.File.FullyQualifiedFilename}");
+          Console.WriteLine($"{Math.Round(fileNumber / (double)numberOfFiles * 100)}% {file.SourceFileInfo.FullyQualifiedFilename}");
           lastReport = DateTime.Now;
         }
         

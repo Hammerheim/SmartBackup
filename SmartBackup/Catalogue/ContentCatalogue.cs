@@ -48,14 +48,14 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    public BackupTargetItem GetNewestVersion(FileInformation file)
+    public ContentCatalogueEntry GetNewestVersion(FileInformation file)
     {
       return GetNewestVersion(file.FullyQualifiedFilename);
     }
 
-    public BackupTargetItem GetNewestVersion(string key)
+    public ContentCatalogueEntry GetNewestVersion(string key)
     {
-      BackupTargetItem newestItem = null;
+      ContentCatalogueEntry newestItem = null;
       foreach (var catalogue in Targets)
       {
         if (catalogue.KeySearchContent.ContainsKey(key))
@@ -64,7 +64,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
           {
             if (newestItem == null)
               newestItem = item;
-            if (item.File.Version > newestItem.File.Version)
+            if (item.Version > newestItem.Version)
               newestItem = item;
           }
         }
@@ -111,11 +111,12 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     public async Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes)
     {
+      this.BackupDirectory = backupDirectory.FullName;
+      this.MaxSizeOfFiles = expectedMaxSizeInMegaBytes;
+
       if (!backupDirectory.Exists)
         return;
 
-      this.BackupDirectory = backupDirectory.FullName;
-      this.MaxSizeOfFiles = expectedMaxSizeInMegaBytes;
       var files = backupDirectory.GetFiles("BackupTarget.*.exe");
       if (files.Length == 0)
         return;
@@ -159,9 +160,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         await target.BackupTarget.WriteCatalogue(false);
       }
     }
-    public async Task ExtractFile(BackupTargetItem item, DirectoryInfo extractionRoot)
+    public async Task ExtractFile(ContentCatalogueEntry item, DirectoryInfo extractionRoot)
     {
-      var backupTarget = GetBackupTargetContainingFile(item.File);
+      var backupTarget = GetBackupTargetContainingFile(item.SourceFileInfo);
       if (backupTarget == null)
         throw new FileNotFoundException();
       await backupTarget.ExtractFile(item, extractionRoot);
@@ -198,10 +199,10 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       {
         foreach (var file in target.Content)
         {
-          if (!keys.ContainsKey(file.File.FullyQualifiedFilename))
+          if (!keys.ContainsKey(file.SourceFileInfo.FullyQualifiedFilename))
           {
-            keys.Add(file.File.FullyQualifiedFilename, string.Empty);
-            returnThis.Add(file.File.FullyQualifiedFilename);
+            keys.Add(file.SourceFileInfo.FullyQualifiedFilename, string.Empty);
+            returnThis.Add(file.SourceFileInfo.FullyQualifiedFilename);
           }
         }
       }

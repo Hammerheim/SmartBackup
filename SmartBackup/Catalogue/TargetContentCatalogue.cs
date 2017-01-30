@@ -8,13 +8,13 @@ using System.Xml.Serialization;
 namespace Vibe.Hammer.SmartBackup.Catalogue
 {
   [XmlType("TCC")]
-  [XmlInclude(typeof(BackupTargetItem))]
+  [XmlInclude(typeof(ContentCatalogueEntry))]
   public class TargetContentCatalogue
   {
     public TargetContentCatalogue()
     {
-      Content = new List<BackupTargetItem>();
-      KeySearchContent = new Dictionary<string, List<BackupTargetItem>>();
+      Content = new List<ContentCatalogueEntry>();
+      KeySearchContent = new Dictionary<string, List<ContentCatalogueEntry>>();
     }
 
     public TargetContentCatalogue(int backupTargetIndex, BackupTarget target)
@@ -27,7 +27,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     [XmlAttribute("bti")]
     public int BackupTargetIndex { get; set; }
 
-    public void Add(BackupTargetItem item)
+    public void Add(ContentCatalogueEntry item)
     {
       Content.Add(item);
       AddToKeySearch(item);
@@ -35,30 +35,30 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     [XmlArray("Content")]
     [XmlArrayItem("BTI")]
-    public List<BackupTargetItem> Content { get; private set; }
+    public List<ContentCatalogueEntry> Content { get; private set; }
 
     [XmlIgnore]
-    public Dictionary<string, List<BackupTargetItem>> KeySearchContent { get; private set; }
+    public Dictionary<string, List<ContentCatalogueEntry>> KeySearchContent { get; private set; }
 
     [XmlIgnore]
     public BackupTarget BackupTarget { get; set; }
 
     public void RebuildSearchIndex()
     {
-      KeySearchContent = new Dictionary<string, List<BackupTargetItem>>();
+      KeySearchContent = new Dictionary<string, List<ContentCatalogueEntry>>();
       foreach (var item in Content)
       {
         AddToKeySearch(item);
       }
     }
 
-    private void AddToKeySearch(BackupTargetItem item)
+    private void AddToKeySearch(ContentCatalogueEntry item)
     {
-      if (KeySearchContent.ContainsKey(item.File.FullyQualifiedFilename))
-        KeySearchContent[item.File.FullyQualifiedFilename].Add(item);
+      if (KeySearchContent.ContainsKey(item.SourceFileInfo.FullyQualifiedFilename))
+        KeySearchContent[item.SourceFileInfo.FullyQualifiedFilename].Add(item);
       else
       {
-        KeySearchContent.Add(item.File.FullyQualifiedFilename, new List<BackupTargetItem> { item });
+        KeySearchContent.Add(item.SourceFileInfo.FullyQualifiedFilename, new List<ContentCatalogueEntry> { item });
       }
     }
   }

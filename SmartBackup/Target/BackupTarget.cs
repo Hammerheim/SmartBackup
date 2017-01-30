@@ -42,9 +42,9 @@ namespace Vibe.Hammer.SmartBackup
 
     private async Task InsertFile(FileInformation file)
     {
-      var item = new BackupTargetItem
+      var item = new ContentCatalogueEntry
       {
-        File = file,
+        SourceFileInfo = file,
         TargetOffset = tail
       };
 
@@ -70,7 +70,7 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    private async Task InsertBinary(BackupTargetItem item, FileInfo sourceFile)
+    private async Task InsertBinary(ContentCatalogueEntry item, FileInfo sourceFile)
     {
       var success = await binaryHandler.InsertFile(item, sourceFile);
       if (success)
@@ -164,12 +164,12 @@ namespace Vibe.Hammer.SmartBackup
         throw new BackupTargetNotInitializedException();
     }
 
-    public async Task ExtractFile(BackupTargetItem file, DirectoryInfo extractionRoot)
+    public async Task ExtractFile(ContentCatalogueEntry file, DirectoryInfo extractionRoot)
     {
       var tempFile = await binaryHandler.ExtractFile(file);
       if (tempFile != null)
       {
-        var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, file.File.RelativePath, file.File.FileName));
+        var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, file.SourceFileInfo.RelativePath, file.SourceFileInfo.FileName));
         targetFile.Directory.Create();
         if (file.Compressed)
         {
@@ -184,7 +184,7 @@ namespace Vibe.Hammer.SmartBackup
         }
         else
           tempFile.MoveTo(targetFile.FullName);
-        File.SetLastWriteTime(targetFile.FullName, file.File.LastModified);
+        File.SetLastWriteTime(targetFile.FullName, file.SourceFileInfo.LastModified);
         GC.WaitForPendingFinalizers();
       }
     }

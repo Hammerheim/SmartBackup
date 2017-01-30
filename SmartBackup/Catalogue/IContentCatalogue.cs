@@ -9,7 +9,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 {
   public interface IContentCatalogue
   {
-    BackupTargetItem GetNewestVersion(FileInformation file);
+    ContentCatalogueEntry GetNewestVersion(FileInformation file);
     void Add(TargetContentCatalogue catalogue);
     Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes);
     

@@ -41,9 +41,9 @@ namespace Vibe.Hammer.SmartBackup
           await contentCatalogue.InsertFile(file);
         else
         {
-          if (currentVersion.File.LastModified < file.LastModified)
+          if (currentVersion.SourceFileInfo.LastModified < file.LastModified)
           {
-            file.Version = currentVersion.File.Version + 1;
+            currentVersion.Version += 1;
             await contentCatalogue.InsertFile(file);
           }
         }

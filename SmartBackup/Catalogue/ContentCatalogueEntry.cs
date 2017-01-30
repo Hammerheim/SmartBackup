@@ -5,24 +5,32 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
-namespace Vibe.Hammer.SmartBackup
+namespace Vibe.Hammer.SmartBackup.Catalogue
 {
-  [XmlType("BTI")]
+  [XmlType("CCE")]
   [XmlInclude(typeof(FileInformation))]
-  public class BackupTargetItem
+  public class ContentCatalogueEntry
   {
-    public BackupTargetItem()
+    public ContentCatalogueEntry()
     {
 
     }
 
-    [XmlElement("F")]
-    public FileInformation File { get; set; }
+    [XmlElement("SFI")]
+    public FileInformation SourceFileInfo { get; set; }
+
+    [XmlAttribute("v")]
+    public int Version { get; set; }
+
     [XmlAttribute("to")]
     public long TargetOffset { get; set; }
+
     [XmlAttribute("tl")]
     public long TargetLength { get; set; }
+
     [XmlAttribute("c")]
     public bool Compressed { get; set; }
+
+
   }
 }

@@ -47,7 +47,7 @@ namespace Vibe.Hammer.SmartBackup
       throw new NotImplementedException();
     }
 
-    public async Task<bool> InsertFile(BackupTargetItem file, FileInfo sourceFile)
+    public async Task<bool> InsertFile(ContentCatalogueEntry file, FileInfo sourceFile)
     {
       if (!sourceFile.Exists)
         throw new FileNotFoundException(sourceFile.FullName);
@@ -71,7 +71,7 @@ namespace Vibe.Hammer.SmartBackup
       return false;
     }
 
-    public async Task<FileInfo> ExtractFile(BackupTargetItem file)
+    public async Task<FileInfo> ExtractFile(ContentCatalogueEntry file)
     {
       var tempFilename = Path.GetTempFileName() + ".zip";
       try
@@ -93,7 +93,7 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    private async Task CopyBytesToFile(BackupTargetItem file, string tempFilename)
+    private async Task CopyBytesToFile(ContentCatalogueEntry file, string tempFilename)
     {
       using (var fileStream = new FileStream(tempFilename, FileMode.Create))
       {
@@ -159,7 +159,7 @@ namespace Vibe.Hammer.SmartBackup
       openForReading = false;
     }
 
-    public Task<bool> RemoveFile(BackupTargetItem file)
+    public Task<bool> RemoveFile(ContentCatalogueEntry file)
     {
       throw new NotImplementedException();
     }
