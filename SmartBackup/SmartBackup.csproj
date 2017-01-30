@@ -59,7 +59,6 @@
     <Compile Include="Target\BackupTargetExtensions.cs" />
     <Compile Include="Catalogue\ContentCatalogueEntry.cs" />
     <Compile Include="Target\BackupTargetNotInitializedException.cs" />
-    <Compile Include="Target\BackupTargetStrategyBase.cs" />
     <Compile Include="InvalidBinaryTargetException.cs" />
     <Compile Include="Compression\CompressedFileTypes.cs" />
     <Compile Include="Compression\CompressionHandler.cs" />
@@ -68,17 +67,13 @@
     <Compile Include="Catalogue\ContentCatalogue.cs" />
     <Compile Include="FileCopyExecutor.cs" />
     <Compile Include="FileInfoExtensions.cs" />
-    <Compile Include="FillOneBackupTargetSelectionStrategy.cs" />
     <Compile Include="Target\IBackupTarget.cs" />
-    <Compile Include="Target\BackupTargetBuilder.cs" />
     <Compile Include="Target\IBackupTargetBinaryHandler.cs" />
-    <Compile Include="Target\IBackupTargetBuilder.cs" />
     <Compile Include="ByteToString.cs" />
     <Compile Include="DirectoryRecurser.cs" />
     <Compile Include="FileInformation.cs" />
     <Compile Include="FileInformationGatherer.cs" />
     <Compile Include="FileTreeLog.cs" />
-    <Compile Include="Target\IBackupTargetSelectionStrategy.cs" />
     <Compile Include="Compression\ICompressionHandler.cs" />
     <Compile Include="IDirectoryRecurser.cs" />
     <Compile Include="IFileHandler.cs" />
