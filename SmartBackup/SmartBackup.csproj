@@ -45,6 +45,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Catalogue\ContentCatalogueBinaryEntry.cs" />
+    <Compile Include="Catalogue\ContentCatalogueLinkEntry.cs" />
     <Compile Include="Compression\DecompressionOfStreamFailedException.cs" />
     <Compile Include="Compression\FileCompressionAsArchiveFailedException.cs" />
     <Compile Include="Compression\FileCompressionAsStramFailedException.cs" />

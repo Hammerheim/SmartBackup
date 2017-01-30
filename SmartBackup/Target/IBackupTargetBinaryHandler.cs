@@ -10,12 +10,12 @@ namespace Vibe.Hammer.SmartBackup
 {
   public interface IBackupTargetBinaryHandler
   {
-    Task<bool> InsertFile(ContentCatalogueEntry file, FileInfo sourceFile);
-    Task<bool> RemoveFile(ContentCatalogueEntry file);
+    Task<bool> InsertFile(ContentCatalogueBinaryEntry file, FileInfo sourceFile);
+    Task<bool> RemoveFile(ContentCatalogueBinaryEntry file);
     Task<bool> Defragment();
     Task WriteContentCatalogue(ContentCatalogue catalogue, bool closeStreams);
     Task<ContentCatalogue> ReadContentCatalogue();
     bool BinaryFileExists { get; }
-    Task<FileInfo> ExtractFile(ContentCatalogueEntry file);
+    Task<FileInfo> ExtractFile(ContentCatalogueBinaryEntry file);
   }
 }

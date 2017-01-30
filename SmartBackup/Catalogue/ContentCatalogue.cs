@@ -181,19 +181,40 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     private async Task ExtractFile(string key, DirectoryInfo extractionRoot)
     {
       var item = GetNewestVersion(key);
+      if (item is ContentCatalogueLinkEntry)
+      {
+        await ExtractFile(item.Key, item.Version, extractionRoot);
+        return;
+      }
+
+      var binaryContentItem = item as ContentCatalogueBinaryEntry;
+      if (binaryContentItem == null)
+        throw new FileNotFoundException();
+
       var backupTarget = GetBackupTargetContainingFile(item.SourceFileInfo);
       if (backupTarget == null)
         throw new FileNotFoundException();
-      await backupTarget.ExtractFile(item, extractionRoot);
+
+      await backupTarget.ExtractFile(binaryContentItem, extractionRoot);
     }
 
     private async Task ExtractFile(string key, int version, DirectoryInfo extractionRoot)
     {
       var item = GetSpecificVersion(key, version);
+      if (item is ContentCatalogueLinkEntry)
+      {
+        await ExtractFile(item.Key, item.Version, extractionRoot);
+        return;
+      }
+
+      var binaryContentItem = item as ContentCatalogueBinaryEntry;
+      if (binaryContentItem == null)
+        throw new FileNotFoundException();
+
       var backupTarget = GetBackupTargetContainingFile(item.SourceFileInfo);
       if (backupTarget == null)
         throw new FileNotFoundException();
-      await backupTarget.ExtractFile(item, extractionRoot);
+      await backupTarget.ExtractFile(binaryContentItem, extractionRoot);
     }
 
     public async Task ExtractAll(DirectoryInfo extractionRoot, IProgress<ProgressReport> progressCallback)

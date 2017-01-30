@@ -18,6 +18,6 @@ namespace Vibe.Hammer.SmartBackup
     Task AddFile(FileInformation file);
     Task WriteCatalogue(bool closeStreams);
     Task ReadCatalogue();
-    Task ExtractFile(ContentCatalogueEntry file, DirectoryInfo extractionRoot);
+    Task ExtractFile(ContentCatalogueBinaryEntry file, DirectoryInfo extractionRoot);
   }
 }

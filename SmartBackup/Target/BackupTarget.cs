@@ -42,7 +42,7 @@ namespace Vibe.Hammer.SmartBackup
 
     private async Task InsertFile(FileInformation file)
     {
-      var item = new ContentCatalogueEntry
+      var item = new ContentCatalogueBinaryEntry
       {
         SourceFileInfo = file,
         TargetOffset = tail
@@ -70,7 +70,7 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    private async Task InsertBinary(ContentCatalogueEntry item, FileInfo sourceFile)
+    private async Task InsertBinary(ContentCatalogueBinaryEntry item, FileInfo sourceFile)
     {
       var success = await binaryHandler.InsertFile(item, sourceFile);
       if (success)
@@ -154,7 +154,7 @@ namespace Vibe.Hammer.SmartBackup
         tail = 1256 * 1024;
         return;
       }
-      long calculatedTail = catalogue.Targets[ID].Content.Max(item => item.TargetOffset + item.TargetLength);
+      long calculatedTail = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().Max(item => item.TargetOffset + item.TargetLength);
       tail = Math.Max(calculatedTail, 1256 * 1024);
     }
 
@@ -164,7 +164,7 @@ namespace Vibe.Hammer.SmartBackup
         throw new BackupTargetNotInitializedException();
     }
 
-    public async Task ExtractFile(ContentCatalogueEntry file, DirectoryInfo extractionRoot)
+    public async Task ExtractFile(ContentCatalogueBinaryEntry file, DirectoryInfo extractionRoot)
     {
       var tempFile = await binaryHandler.ExtractFile(file);
       if (tempFile != null)

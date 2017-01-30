@@ -9,6 +9,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 {
   [XmlType("CCE")]
   [XmlInclude(typeof(FileInformation))]
+  [XmlInclude(typeof(ContentCatalogueBinaryEntry))]
+  [XmlInclude(typeof(ContentCatalogueLinkEntry))]
   public class ContentCatalogueEntry
   {
     public ContentCatalogueEntry()
@@ -22,15 +24,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     [XmlAttribute("v")]
     public int Version { get; set; }
 
-    [XmlAttribute("to")]
-    public long TargetOffset { get; set; }
-
-    [XmlAttribute("tl")]
-    public long TargetLength { get; set; }
-
-    [XmlAttribute("c")]
-    public bool Compressed { get; set; }
-
+    [XmlAttribute("k")]
+    public string Key { get; set; }
 
   }
 }
