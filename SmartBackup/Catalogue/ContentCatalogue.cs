@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
+using Vibe.Hammer.SmartBackup.Progress;
 
 namespace Vibe.Hammer.SmartBackup.Catalogue
 {
@@ -53,7 +54,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return GetNewestVersion(file.FullyQualifiedFilename);
     }
 
-    public ContentCatalogueEntry GetNewestVersion(string key)
+    private ContentCatalogueEntry GetNewestVersion(string key)
     {
       ContentCatalogueEntry newestItem = null;
       foreach (var catalogue in Targets)
@@ -70,6 +71,22 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         }
       }
       return newestItem;
+    }
+
+    private ContentCatalogueEntry GetSpecificVersion(string key, int version)
+    {
+      foreach (var catalogue in Targets)
+      {
+        if (catalogue.KeySearchContent.ContainsKey(key))
+        {
+          foreach (var item in catalogue.KeySearchContent[key])
+          {
+            if (item.Version == version)
+              return item;
+          }
+        }
+      }
+      return null;
     }
 
     internal void EnsureTargetCatalogueExists(ContentCatalogue persistedCatalogue, int targetBinaryID, BackupTarget backupTarget)
@@ -160,13 +177,46 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         await target.BackupTarget.WriteCatalogue(false);
       }
     }
-    public async Task ExtractFile(ContentCatalogueEntry item, DirectoryInfo extractionRoot)
+
+    private async Task ExtractFile(string key, DirectoryInfo extractionRoot)
     {
+      var item = GetNewestVersion(key);
       var backupTarget = GetBackupTargetContainingFile(item.SourceFileInfo);
       if (backupTarget == null)
         throw new FileNotFoundException();
       await backupTarget.ExtractFile(item, extractionRoot);
     }
+
+    private async Task ExtractFile(string key, int version, DirectoryInfo extractionRoot)
+    {
+      var item = GetSpecificVersion(key, version);
+      var backupTarget = GetBackupTargetContainingFile(item.SourceFileInfo);
+      if (backupTarget == null)
+        throw new FileNotFoundException();
+      await backupTarget.ExtractFile(item, extractionRoot);
+    }
+
+    public async Task ExtractAll(DirectoryInfo extractionRoot, IProgress<ProgressReport> progressCallback)
+    {
+      var keys = GetUniqueFileKeys();
+      var numberOfFiles = keys.Count;
+      var lastReport = DateTime.Now;
+      int fileNumber = 0;
+      
+      foreach (var key in keys)
+      {
+        await ExtractFile(key, extractionRoot);
+        if (DateTime.Now - lastReport > TimeSpan.FromSeconds(5))
+        {
+          var file = GetNewestVersion(key);
+          progressCallback.Report(new ProgressReport(file.SourceFileInfo.FileName, fileNumber, numberOfFiles));
+          lastReport = DateTime.Now;
+        }
+
+        fileNumber++;
+      }
+    }
+
     private async Task<BackupTarget> CreateNewBackupTarget()
     {
       var target = new BackupTarget();
@@ -191,7 +241,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return Targets.FirstOrDefault(t => t.BackupTarget.Contains(file.FullyQualifiedFilename)).BackupTarget;
     }
 
-    public List<string> GetUniqueFileKeys()
+    private List<string> GetUniqueFileKeys()
     {
       Dictionary<string, string> keys = new Dictionary<string, string>();
       List<string> returnThis = new List<string>();

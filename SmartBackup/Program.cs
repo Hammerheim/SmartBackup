@@ -76,12 +76,11 @@ namespace Vibe.Hammer.SmartBackup
           value = value.Trim();
           target = new DirectoryInfo(value);
           MainExtractorAsync(target).Wait();
+          Console.WriteLine("Done");
+          return;
         }
       }
 
-      Console.WriteLine("You must specify either an extraction location or verify that ");
-      Console.WriteLine("you want to extract to the original location, but not both");
-      Console.WriteLine("Use: -target:<path>|-useOriginalTarget");
     }
 
     private static async Task MainExtractorAsync(DirectoryInfo target)
@@ -90,23 +89,9 @@ namespace Vibe.Hammer.SmartBackup
       var assemblyFile = new FileInfo(ConvertUriStylePathToNative(Assembly.GetEntryAssembly().CodeBase));
       await catalogue.BuildFromExistingBackups(assemblyFile.Directory, 1024);
 
-      var keys = catalogue.GetUniqueFileKeys();
-      var numberOfFiles = keys.Count;
-      var lastReport = DateTime.Now;
-      int fileNumber = 0;
       Console.WriteLine($"Extracting files from {assemblyFile.Directory} to {target.FullName}");
-      foreach (var key in keys)
-      {
-        var file = catalogue.GetNewestVersion(key);
-        await catalogue.ExtractFile(file, target);
-        if (DateTime.Now - lastReport > TimeSpan.FromSeconds(5))
-        {
-          Console.WriteLine($"{Math.Round(fileNumber / (double)numberOfFiles * 100)}% {file.SourceFileInfo.FullyQualifiedFilename}");
-          lastReport = DateTime.Now;
-        }
-        
-        fileNumber++;
-      }
+      var callbackObject = new Callback();
+      await catalogue.ExtractAll(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
     }
 
     private static string ConvertUriStylePathToNative(string path)

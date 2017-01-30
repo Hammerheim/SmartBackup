@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartBackup", "SmartBackup\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartBackupTest", "SmartBackupTest\SmartBackupTest.csproj", "{EE9D1B15-85A8-4588-AAF5-51B62AC50BE0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Extractor", "Extractor\Extractor.csproj", "{AF90BF60-B242-4BB0-BE81-F6C5211EBA36}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,10 +21,6 @@ Global
 		{EE9D1B15-85A8-4588-AAF5-51B62AC50BE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EE9D1B15-85A8-4588-AAF5-51B62AC50BE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EE9D1B15-85A8-4588-AAF5-51B62AC50BE0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AF90BF60-B242-4BB0-BE81-F6C5211EBA36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AF90BF60-B242-4BB0-BE81-F6C5211EBA36}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AF90BF60-B242-4BB0-BE81-F6C5211EBA36}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AF90BF60-B242-4BB0-BE81-F6C5211EBA36}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
