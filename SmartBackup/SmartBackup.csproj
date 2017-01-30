@@ -56,7 +56,6 @@
     <Compile Include="Target\AddFileToArchiveException.cs" />
     <Compile Include="Target\BackupTarget.cs" />
     <Compile Include="Target\BackupTargetBinaryHandler.cs" />
-    <Compile Include="Target\BackupTargetExtensions.cs" />
     <Compile Include="Catalogue\ContentCatalogueEntry.cs" />
     <Compile Include="Target\BackupTargetNotInitializedException.cs" />
     <Compile Include="InvalidBinaryTargetException.cs" />
