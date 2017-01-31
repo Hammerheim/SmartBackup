@@ -10,9 +10,9 @@ namespace Vibe.Hammer.SmartBackup
 {
   internal class FileInformationGatherer : IFileInformationGatherer
   {
-    private IFileHasher hasher;
+    private IHasher hasher;
 
-    public FileInformationGatherer(IFileHasher hasher)
+    public FileInformationGatherer(IHasher hasher)
     {
       this.hasher = hasher;
     }

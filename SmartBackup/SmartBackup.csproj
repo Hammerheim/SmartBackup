@@ -76,11 +76,11 @@
     <Compile Include="Compression\ICompressionHandler.cs" />
     <Compile Include="IDirectoryRecurser.cs" />
     <Compile Include="IFileHandler.cs" />
-    <Compile Include="IFileHasher.cs" />
+    <Compile Include="IHasher.cs" />
     <Compile Include="IFileInformationGatherer.cs" />
     <Compile Include="IFileLog.cs" />
     <Compile Include="IRunner.cs" />
-    <Compile Include="MD5FileHasher.cs" />
+    <Compile Include="MD5Hasher.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProgressState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

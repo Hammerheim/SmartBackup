@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Vibe.Hammer.SmartBackup
 {
-  public interface IFileHasher
+  public interface IHasher
   {
     Task<byte[]> GetHash(FileInfo file);
     Task<byte[]> GetHash(string source);

@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 
 namespace Vibe.Hammer.SmartBackup
 {
-  internal class MD5FileHasher : IFileHasher
+  internal class MD5Hasher : IHasher
   {
     public async Task<byte[]> GetHash(string source)
     {
       using (var md5 = MD5.Create())
       {
-        var bytes = System.Text.Encoding.ASCII.GetBytes(source);
+        var bytes = Encoding.ASCII.GetBytes(source);
         return await Task.Run(() => md5.ComputeHash(bytes));
       }
     }

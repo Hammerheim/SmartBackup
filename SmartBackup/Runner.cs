@@ -11,7 +11,7 @@ namespace Vibe.Hammer.SmartBackup
 {
   public class Runner : IRunner
   {
-    private IFileInformationGatherer gatherer = new FileInformationGatherer(new MD5FileHasher());
+    private IFileInformationGatherer gatherer = new FileInformationGatherer(new MD5Hasher());
     private int currentFile;
     private int maxNumberOfFiles;
     private DateTime lastProgressReport;
@@ -68,7 +68,7 @@ namespace Vibe.Hammer.SmartBackup
     {
       var logger = new FileTreeLog();
       var recurser = new DirectoryRecurser();
-      var result = await recurser.RecurseDirectory(sourceRoot, new SimpleFileHandler(new FileInformationGatherer(new MD5FileHasher()), logger), false, progressCallback);
+      var result = await recurser.RecurseDirectory(sourceRoot, new SimpleFileHandler(new FileInformationGatherer(new MD5Hasher()), logger), false, progressCallback);
       if (result)
       {
         return logger;
