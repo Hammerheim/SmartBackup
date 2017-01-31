@@ -25,7 +25,6 @@ namespace Vibe.Hammer.SmartBackup
         LastModified = file.LastWriteTime,
         FullyQualifiedFilename = file.FullName,
         Size = file.Length,
-        ContentHash = deepScan ? await hasher.GetHashString(file) : string.Empty,
         RelativePath = GetRelativePath(file.Directory.FullName, root.FullName)
       };
       return info;

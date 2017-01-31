@@ -26,7 +26,7 @@ namespace Vibe.Hammer.SmartBackup
 
     public void Log(FileInformation fileInformation)
     {
-      log.Append($"{fileInformation.Directory},{fileInformation.FileName},{fileInformation.LastModified},{fileInformation.FullyQualifiedFilename},{fileInformation.ContentHash}");
+      log.Append($"{fileInformation.Directory},{fileInformation.FileName},{fileInformation.LastModified},{fileInformation.FullyQualifiedFilename}");
     }
 
     public Task Read(string logFile)

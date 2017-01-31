@@ -18,5 +18,12 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     [XmlAttribute("c")]
     public bool Compressed { get; set; }
+
+    [XmlAttribute("pch")]
+    public string PrimaryContentHash { get; set; }
+
+    [XmlAttribute("pch")]
+    public string SecondaryContentHash { get; set; }
+
   }
 }

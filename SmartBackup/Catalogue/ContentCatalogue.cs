@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
+using Vibe.Hammer.SmartBackup.Compression;
 using Vibe.Hammer.SmartBackup.Progress;
 
 namespace Vibe.Hammer.SmartBackup.Catalogue
@@ -40,6 +41,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     [XmlIgnore]
     public Dictionary<int, TargetContentCatalogue> SearchTargets { get; private set; }
 
+    [XmlIgnore]
+    public Dictionary<string, List<ContentCatalogueBinaryEntry>> ContentHashes { get; private set; }
+
     public void RebuildSearchIndex()
     {
       foreach (var item in Targets)
@@ -47,6 +51,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         SearchTargets.Add(item.BackupTargetIndex, item);
         item.RebuildSearchIndex();
       }
+
+      BuildContentHashesDictionary();
     }
 
     public ContentCatalogueEntry GetNewestVersion(FileInformation file)
@@ -145,7 +151,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         if (match.Success)
         {
           var number = int.Parse(match.Groups[1].Value);
-          var backupTarget = new BackupTarget();
+          var backupTarget = new BackupTarget(new MD5Hasher(), new Sha256Hasher(), new CompressionHandler());
           await backupTarget.Initialize(expectedMaxSizeInMegaBytes, backupDirectory, number, this);
         }
       }
@@ -240,7 +246,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     private async Task<BackupTarget> CreateNewBackupTarget()
     {
-      var target = new BackupTarget();
+      var target = new BackupTarget(new MD5Hasher(), new Sha256Hasher(), new CompressionHandler());
       var id = SearchTargets.Keys.Count == 0 ? 0 : SearchTargets.Keys.Max() + 1;
       await target.Initialize(MaxSizeOfFiles, new DirectoryInfo(BackupDirectory), id, this);
       Add(new TargetContentCatalogue(id, target));
@@ -278,6 +284,44 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         }
       }
       return returnThis;
+    }
+
+    public IEnumerable<ContentCatalogueBinaryEntry> GetAllContentEntriesWithoutHashes(IProgress<ProgressReport> progressCallback)
+    {
+      var entries = new List<ContentCatalogueBinaryEntry>();
+      foreach (var target in Targets)
+      {
+        entries.AddRange(target.Content.OfType<ContentCatalogueBinaryEntry>().Where(entry => string.IsNullOrEmpty(entry.PrimaryContentHash)));
+      }
+      return entries;
+    }
+
+    public BackupTarget GetBackupTargetFor(ContentCatalogueEntry entry)
+    {
+      foreach (var target in Targets)
+      {
+        if (target.BackupTarget.Contains(entry.Key, entry.Version))
+          return target.BackupTarget;
+      }
+      return null;
+    }
+
+    private void BuildContentHashesDictionary()
+    {
+      ContentHashes.Clear();
+      foreach (var target in Targets)
+      {
+        foreach (var entry in target.Content.OfType<ContentCatalogueBinaryEntry>())
+        {
+          if (ContentHashes.ContainsKey(entry.PrimaryContentHash))
+            ContentHashes[entry.PrimaryContentHash].Add(entry);
+          else
+          {
+            ContentHashes.Add(entry.PrimaryContentHash, new List<ContentCatalogueBinaryEntry> { entry });
+          }
+        }
+      }
+
     }
   }
 }

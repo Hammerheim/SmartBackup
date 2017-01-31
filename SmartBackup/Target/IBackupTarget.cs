@@ -14,10 +14,13 @@ namespace Vibe.Hammer.SmartBackup
     int TargetId { get; set; }
     long Tail { get; }
     bool Contains(string key);
+    bool Contains(string key, int version);
     bool CanContain(FileInformation file);
     Task AddFile(FileInformation file);
     Task WriteCatalogue(bool closeStreams);
     Task ReadCatalogue();
     Task ExtractFile(ContentCatalogueBinaryEntry file, DirectoryInfo extractionRoot);
+    Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry);
+    Task<string> CalculateSecondaryHash(ContentCatalogueBinaryEntry entry);
   }
 }

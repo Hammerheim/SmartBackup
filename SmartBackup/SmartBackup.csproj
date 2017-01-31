@@ -53,6 +53,7 @@
     <Compile Include="Progress\ActionTypes.cs" />
     <Compile Include="Compression\CompressionModes.cs" />
     <Compile Include="Progress\ProgressReport.cs" />
+    <Compile Include="Sha256Hasher.cs" />
     <Compile Include="Target\AddFileToArchiveException.cs" />
     <Compile Include="Target\BackupTarget.cs" />
     <Compile Include="Target\BackupTargetBinaryHandler.cs" />
@@ -64,7 +65,6 @@
     <Compile Include="Catalogue\IContentCatalogue.cs" />
     <Compile Include="Catalogue\TargetContentCatalogue.cs" />
     <Compile Include="Catalogue\ContentCatalogue.cs" />
-    <Compile Include="FileCopyExecutor.cs" />
     <Compile Include="FileInfoExtensions.cs" />
     <Compile Include="Target\IBackupTarget.cs" />
     <Compile Include="Target\IBackupTargetBinaryHandler.cs" />

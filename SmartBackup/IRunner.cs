@@ -13,5 +13,6 @@ namespace Vibe.Hammer.SmartBackup
     Task<IFileLog> ShallowScan(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback);
     Task<IFileLog> DeepScan(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback);
     Task<bool> Backup(IFileLog log, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback);
+    Task<bool> CalculateMissingHashes(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback);
   }
 }

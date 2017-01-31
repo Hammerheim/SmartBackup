@@ -14,9 +14,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     void Add(TargetContentCatalogue catalogue);
     Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes);
 
-    //Task ExtractFile(string key, DirectoryInfo extractionRoot);
-    //Task ExtractFile(string key, int version, DirectoryInfo extractionRoot);
-
     Task ExtractAll(DirectoryInfo extractionRoot, IProgress<ProgressReport> progressCallback);
+    IEnumerable<ContentCatalogueBinaryEntry> GetAllContentEntriesWithoutHashes(IProgress<ProgressReport> progressCallback);
+    BackupTarget GetBackupTargetFor(ContentCatalogueEntry entry);
   }
 }

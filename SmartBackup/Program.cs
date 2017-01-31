@@ -111,24 +111,12 @@ namespace Vibe.Hammer.SmartBackup
       var callbackObject = new Callback();
 
       Console.WriteLine("Building source dictionary using shallow scan...");
-      var runner = new Runner();
+      var runner = new Runner(target);
       shallowScanComplete = false;
       var result = await runner.ShallowScan(source, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       if (result != null)
         await runner.Backup(result, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
 
-      Console.WriteLine("Done");
-    }
-
-    private static async Task DeepScan()
-    {
-      var callbackObject = new Callback();
-      Console.WriteLine("Building source dictionary using deep scan...");
-      Console.WriteLine("This will take some time...");
-      var runner = new Runner();
-      shallowScanComplete = false;
-      var result = await runner.DeepScan(new DirectoryInfo(@"c:\test\"), new DirectoryInfo(@"L:\Test\"), new Progress<ProgressReport>(callbackObject.ProgressCallback));
-      await result.Save(@"E:\deleteme\x.sbLog");
       Console.WriteLine("Done");
     }
 

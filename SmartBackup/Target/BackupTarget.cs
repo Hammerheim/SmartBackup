@@ -15,14 +15,22 @@ namespace Vibe.Hammer.SmartBackup
   public class BackupTarget : IBackupTarget
   {
     private ContentCatalogue catalogue;
-    private BackupTargetBinaryHandler binaryHandler;
+    private IBackupTargetBinaryHandler binaryHandler;
     private long maxLength;
     private long tail = 1256 * 1024;
     private string filename;
-    private CompressionHandler compressionHandler;
+    private ICompressionHandler compressionHandler;
+    private IHasher primaryHasher;
+    private IHasher secondaryHasher;
     private bool Initialized = false;
     private int ID;
 
+    public BackupTarget(IHasher primaryHasher, IHasher secondaryHasher, ICompressionHandler compressionHandler)
+    {
+      this.primaryHasher = primaryHasher;
+      this.secondaryHasher = secondaryHasher;
+      this.compressionHandler = compressionHandler;
+    }
     public long Tail
     {
       get
@@ -75,6 +83,7 @@ namespace Vibe.Hammer.SmartBackup
       var success = await binaryHandler.InsertFile(item, sourceFile);
       if (success)
       {
+        item.PrimaryContentHash = await primaryHasher.GetHashString(sourceFile);
         tail = item.TargetOffset + item.TargetLength;
         // update log
         catalogue.SearchTargets[ID].Add(item);
@@ -121,6 +130,16 @@ namespace Vibe.Hammer.SmartBackup
       return (catalogue.Targets[ID].KeySearchContent.ContainsKey(key));
     }
 
+    public bool Contains(string key, int version)
+    {
+      EnsureInitialized();
+      if (catalogue.Targets[ID].KeySearchContent.ContainsKey(key))
+      {
+        return catalogue.Targets[ID].KeySearchContent[key].FirstOrDefault(entry => entry.Key == key && entry.Version == version) == null;
+      }
+      return false;
+    }
+
     public async Task ReadCatalogue()
     {
       EnsureInitialized();
@@ -140,7 +159,6 @@ namespace Vibe.Hammer.SmartBackup
       filename = Path.Combine(backupDirectory.FullName, $"BackupTarget.{id}.exe");
       if (!backupDirectory.Exists)
         backupDirectory.Create();
-      compressionHandler = new CompressionHandler();
       binaryHandler = new BackupTargetBinaryHandler(new FileInfo(filename), compressionHandler);
       await EnsureContentCatalogue(catalogue);
       CalculateTail();
@@ -187,6 +205,16 @@ namespace Vibe.Hammer.SmartBackup
         File.SetLastWriteTime(targetFile.FullName, file.SourceFileInfo.LastModified);
         GC.WaitForPendingFinalizers();
       }
+    }
+
+    public Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry)
+    {
+      throw new NotImplementedException();
+    }
+
+    public Task<string> CalculateSecondaryHash(ContentCatalogueBinaryEntry entry)
+    {
+      throw new NotImplementedException();
     }
   }
 }

@@ -15,14 +15,23 @@ namespace Vibe.Hammer.SmartBackup
     private int currentFile;
     private int maxNumberOfFiles;
     private DateTime lastProgressReport;
+    private ContentCatalogue catalogue;
+    private readonly DirectoryInfo root;
 
+    public Runner(DirectoryInfo targetRoot)
+    {
+      if (targetRoot == null)
+        throw new ArgumentNullException(nameof(targetRoot));
+      catalogue = null;
+      root = targetRoot;
+    }
     public async Task<bool> Backup(IFileLog log, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
     {
       currentFile = 0;
       progressCallback.Report(new ProgressReport("Starting backup"));
       progressCallback.Report(new ProgressReport("Reading existing content catalogues if any..."));
-      var contentCatalogue = new ContentCatalogue();
-      await contentCatalogue.BuildFromExistingBackups(targetRoot, 1024);
+      if (catalogue == null)
+        await catalogue.BuildFromExistingBackups(root, 1024);
 
       progressCallback.Report(new ProgressReport("Performing backup..."));
       lastProgressReport = DateTime.Now;
@@ -32,23 +41,23 @@ namespace Vibe.Hammer.SmartBackup
         if (DateTime.Now - lastProgressReport > TimeSpan.FromSeconds(5))
         {
           progressCallback.Report(new ProgressReport(file.FullyQualifiedFilename, currentFile, maxNumberOfFiles));
-          await contentCatalogue.WriteCatalogue();
+          await catalogue.WriteCatalogue();
           lastProgressReport = DateTime.Now;
         }
         currentFile++;
-        var currentVersion = contentCatalogue.GetNewestVersion(file);
+        var currentVersion = catalogue.GetNewestVersion(file);
         if (currentVersion == null)
-          await contentCatalogue.InsertFile(file);
+          await catalogue.InsertFile(file);
         else
         {
           if (currentVersion.SourceFileInfo.LastModified < file.LastModified)
           {
             currentVersion.Version += 1;
-            await contentCatalogue.InsertFile(file);
+            await catalogue.InsertFile(file);
           }
         }
       }
-      await contentCatalogue.CloseTargets();
+      await catalogue.CloseTargets();
       progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
       return true;
     }
@@ -77,5 +86,34 @@ namespace Vibe.Hammer.SmartBackup
 
     }
 
+    public async Task<bool> CalculateMissingHashes(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    {
+      if (catalogue == null)
+      {
+        progressCallback.Report(new ProgressReport("Reading content catalogue..."));
+        await catalogue.BuildFromExistingBackups(targetRoot, 1024);
+      }
+
+      currentFile = 0;
+      var allContentWithoutHashes = catalogue.GetAllContentEntriesWithoutHashes(progressCallback);
+      maxNumberOfFiles = allContentWithoutHashes.Count();
+      lastProgressReport = DateTime.Now;
+
+      progressCallback.Report(new ProgressReport("Scanning for dublicated files..."));
+      foreach (var contentItem in allContentWithoutHashes)
+      {
+        var backupTarget = catalogue.GetBackupTargetFor(contentItem);
+        contentItem.PrimaryContentHash = await backupTarget.CalculatePrimaryHash(contentItem);
+
+        if (DateTime.Now - lastProgressReport > TimeSpan.FromSeconds(5))
+        {
+          progressCallback.Report(new ProgressReport(contentItem.SourceFileInfo.FullyQualifiedFilename, currentFile, maxNumberOfFiles));
+          await catalogue.WriteCatalogue();
+          lastProgressReport = DateTime.Now;
+        }
+      }
+      await catalogue.WriteCatalogue();
+      return true;
+    }
   }
 }
