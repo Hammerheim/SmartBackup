@@ -22,7 +22,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     [XmlAttribute("pch")]
     public string PrimaryContentHash { get; set; }
 
-    [XmlAttribute("pch")]
+    [XmlAttribute("sch")]
     public string SecondaryContentHash { get; set; }
 
   }

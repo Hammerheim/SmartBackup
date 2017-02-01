@@ -83,7 +83,6 @@ namespace Vibe.Hammer.SmartBackup
       var success = await binaryHandler.InsertFile(item, sourceFile);
       if (success)
       {
-        item.PrimaryContentHash = await primaryHasher.GetHashString(sourceFile);
         tail = item.TargetOffset + item.TargetLength;
         // update log
         catalogue.SearchTargets[ID].Add(item);
@@ -135,7 +134,7 @@ namespace Vibe.Hammer.SmartBackup
       EnsureInitialized();
       if (catalogue.Targets[ID].KeySearchContent.ContainsKey(key))
       {
-        return catalogue.Targets[ID].KeySearchContent[key].FirstOrDefault(entry => entry.Key == key && entry.Version == version) == null;
+        return catalogue.Targets[ID].KeySearchContent[key].FirstOrDefault(entry => entry.Key == key && entry.Version == version) != null;
       }
       return false;
     }
@@ -207,14 +206,22 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    public Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry)
+    public async Task CalculateHashes(ContentCatalogueBinaryEntry entry)
     {
-      throw new NotImplementedException();
-    }
-
-    public Task<string> CalculateSecondaryHash(ContentCatalogueBinaryEntry entry)
-    {
-      throw new NotImplementedException();
+      var tempFile = await binaryHandler.ExtractFile(entry);
+      if (tempFile.Exists)
+      {
+        try
+        {
+          entry.PrimaryContentHash = await primaryHasher.GetHashString(tempFile);
+          entry.SecondaryContentHash = await primaryHasher.GetHashString(tempFile);
+          catalogue.AddContentHash(entry.PrimaryContentHash, entry);
+        }
+        finally
+        {
+          tempFile.Delete();
+        }
+      }
     }
   }
 }

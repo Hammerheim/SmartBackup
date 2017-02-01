@@ -9,6 +9,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 {
   [XmlType("TCC")]
   [XmlInclude(typeof(ContentCatalogueEntry))]
+  [XmlInclude(typeof(ContentCatalogueBinaryEntry))]
+  [XmlInclude(typeof(ContentCatalogueLinkEntry))]
   public class TargetContentCatalogue
   {
     public TargetContentCatalogue()

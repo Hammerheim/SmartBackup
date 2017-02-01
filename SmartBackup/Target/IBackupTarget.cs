@@ -20,7 +20,6 @@ namespace Vibe.Hammer.SmartBackup
     Task WriteCatalogue(bool closeStreams);
     Task ReadCatalogue();
     Task ExtractFile(ContentCatalogueBinaryEntry file, DirectoryInfo extractionRoot);
-    Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry);
-    Task<string> CalculateSecondaryHash(ContentCatalogueBinaryEntry entry);
+    Task CalculateHashes(ContentCatalogueBinaryEntry entry);
   }
 }

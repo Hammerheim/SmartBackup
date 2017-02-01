@@ -19,6 +19,7 @@ namespace Vibe.Hammer.SmartBackup
   {
     // -backup -source:"C:\Test\Second tier" -target:"L:\Test"
     // -extract -target:"L:\test2"
+    // -maintenance -target:e:\test
     private static bool shallowScanComplete;
     static void Main(string[] args)
     {
@@ -80,7 +81,19 @@ namespace Vibe.Hammer.SmartBackup
           return;
         }
       }
-
+      else if (args[0].ToLower().StartsWith("-maintenance"))
+      {
+        if (args[1].ToLower().StartsWith("-target:"))
+        {
+          var value = args[1].Substring(8);
+          value = value.Replace('"', ' ');
+          value = value.Trim();
+          target = new DirectoryInfo(value);
+          MainMaintenanceAsync(target).Wait();
+          Console.WriteLine("Done");
+          return;
+        }
+      }
     }
 
     private static async Task MainExtractorAsync(DirectoryInfo target)
@@ -94,6 +107,16 @@ namespace Vibe.Hammer.SmartBackup
       await catalogue.ExtractAll(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
     }
 
+    private static async Task MainMaintenanceAsync(DirectoryInfo target)
+    {
+      var callbackObject = new Callback();
+
+      Console.WriteLine("Starting maintenance run...");
+      var runner = new Runner(target);
+      await runner.CalculateMissingHashes(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+
+      Console.WriteLine("Done");
+    }
     private static string ConvertUriStylePathToNative(string path)
     {
       path = path.Substring(8);

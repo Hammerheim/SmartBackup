@@ -19,6 +19,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       SearchTargets = new Dictionary<int, TargetContentCatalogue>();
       Targets = new List<TargetContentCatalogue>();
+      ContentHashes = new Dictionary<string, List<ContentCatalogueBinaryEntry>>();
     }
 
     public ContentCatalogue(int maxSizeInMegaBytes, DirectoryInfo backupDirectory)
@@ -93,6 +94,27 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         }
       }
       return null;
+    }
+
+    public bool IsKnownPrimaryHash(string primaryContentHash)
+    {
+      if (ContentHashes == null || !ContentHashes.Any())
+        BuildContentHashesDictionary();
+
+      return ContentHashes.ContainsKey(primaryContentHash);
+    }
+
+    public void AddContentHash(string primaryContentHash, ContentCatalogueBinaryEntry entry)
+    {
+      if (string.IsNullOrEmpty(primaryContentHash))
+        return;
+      if (string.IsNullOrEmpty(entry.PrimaryContentHash))
+        return;
+
+      if (ContentHashes.ContainsKey(primaryContentHash))
+        ContentHashes[primaryContentHash].Add(entry);
+      else
+        ContentHashes.Add(primaryContentHash, new List<ContentCatalogueBinaryEntry> { entry });
     }
 
     internal void EnsureTargetCatalogueExists(ContentCatalogue persistedCatalogue, int targetBinaryID, BackupTarget backupTarget)
@@ -313,11 +335,14 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       {
         foreach (var entry in target.Content.OfType<ContentCatalogueBinaryEntry>())
         {
-          if (ContentHashes.ContainsKey(entry.PrimaryContentHash))
-            ContentHashes[entry.PrimaryContentHash].Add(entry);
-          else
+          if (entry.PrimaryContentHash != null)
           {
-            ContentHashes.Add(entry.PrimaryContentHash, new List<ContentCatalogueBinaryEntry> { entry });
+            if (ContentHashes.ContainsKey(entry.PrimaryContentHash))
+              ContentHashes[entry.PrimaryContentHash].Add(entry);
+            else
+            {
+              ContentHashes.Add(entry.PrimaryContentHash, new List<ContentCatalogueBinaryEntry> { entry });
+            }
           }
         }
       }

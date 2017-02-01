@@ -31,7 +31,10 @@ namespace Vibe.Hammer.SmartBackup
       progressCallback.Report(new ProgressReport("Starting backup"));
       progressCallback.Report(new ProgressReport("Reading existing content catalogues if any..."));
       if (catalogue == null)
+      {
+        catalogue = new ContentCatalogue(1024, targetRoot);
         await catalogue.BuildFromExistingBackups(root, 1024);
+      }
 
       progressCallback.Report(new ProgressReport("Performing backup..."));
       lastProgressReport = DateTime.Now;
@@ -91,11 +94,17 @@ namespace Vibe.Hammer.SmartBackup
       if (catalogue == null)
       {
         progressCallback.Report(new ProgressReport("Reading content catalogue..."));
+        catalogue = new ContentCatalogue(1024, targetRoot);
         await catalogue.BuildFromExistingBackups(targetRoot, 1024);
       }
 
       currentFile = 0;
       var allContentWithoutHashes = catalogue.GetAllContentEntriesWithoutHashes(progressCallback);
+      if (!allContentWithoutHashes.Any())
+      {
+        progressCallback.Report(new ProgressReport("All files are already hashed."));
+        return true;
+      }
       maxNumberOfFiles = allContentWithoutHashes.Count();
       lastProgressReport = DateTime.Now;
 
@@ -103,7 +112,7 @@ namespace Vibe.Hammer.SmartBackup
       foreach (var contentItem in allContentWithoutHashes)
       {
         var backupTarget = catalogue.GetBackupTargetFor(contentItem);
-        contentItem.PrimaryContentHash = await backupTarget.CalculatePrimaryHash(contentItem);
+        await backupTarget.CalculateHashes(contentItem);
 
         if (DateTime.Now - lastProgressReport > TimeSpan.FromSeconds(5))
         {
