@@ -318,6 +318,29 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return entries;
     }
 
+    public IEnumerable<List<ContentCatalogueBinaryEntry>> GetAllPossibleDublicates(IProgress<ProgressReport> progressCallback)
+    {
+      if (!ContentHashes.Any())
+        BuildContentHashesDictionary();
+
+      foreach (var key in ContentHashes.Keys)
+      {
+        if (ContentHashes[key].Count > 1)
+          yield return ContentHashes[key];
+      }
+    }
+
+    public void ReplaceBinaryEntryWithLink(ContentCatalogueBinaryEntry binary, ContentCatalogueLinkEntry link)
+    {
+      foreach (var target in Targets)
+      {
+        if (target.KeySearchContent.ContainsKey(binary.Key))
+        {
+          target.ReplaceContent(binary, link);
+        }
+      }
+      
+    }
     public BackupTarget GetBackupTargetFor(ContentCatalogueEntry entry)
     {
       foreach (var target in Targets)

@@ -108,7 +108,7 @@ namespace Vibe.Hammer.SmartBackup
       maxNumberOfFiles = allContentWithoutHashes.Count();
       lastProgressReport = DateTime.Now;
 
-      progressCallback.Report(new ProgressReport("Scanning for dublicated files..."));
+      progressCallback.Report(new ProgressReport("Scanning for missing file hashes..."));
       foreach (var contentItem in allContentWithoutHashes)
       {
         var backupTarget = catalogue.GetBackupTargetFor(contentItem);
@@ -119,6 +119,55 @@ namespace Vibe.Hammer.SmartBackup
           progressCallback.Report(new ProgressReport(contentItem.SourceFileInfo.FullyQualifiedFilename, currentFile, maxNumberOfFiles));
           await catalogue.WriteCatalogue();
           lastProgressReport = DateTime.Now;
+        }
+        currentFile++;
+      }
+      await catalogue.WriteCatalogue();
+      return true;
+    }
+
+    public async Task<bool> ReplaceDublicatesWithLinks(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    {
+      if (catalogue == null)
+      {
+        progressCallback.Report(new ProgressReport("Reading content catalogue..."));
+        catalogue = new ContentCatalogue(1024, targetRoot);
+        await catalogue.BuildFromExistingBackups(targetRoot, 1024);
+      }
+
+      currentFile = 0;
+      var allPossibleDublicates = catalogue.GetAllPossibleDublicates(progressCallback);
+      if (!allPossibleDublicates.Any())
+      {
+        progressCallback.Report(new ProgressReport("There are no dublicates in the backup."));
+        return true;
+      }
+      maxNumberOfFiles = allPossibleDublicates.Count();
+      lastProgressReport = DateTime.Now;
+
+      progressCallback.Report(new ProgressReport("Linking dublicate files..."));
+
+      foreach (var entryList in allPossibleDublicates)
+      {
+        currentFile++;
+        ContentCatalogueBinaryEntry primaryEntry = null;
+        foreach (var entry in entryList)
+        {
+          if (primaryEntry == null)
+          {
+            primaryEntry = entry;
+            continue;
+          }
+
+          var link = new ContentCatalogueLinkEntry(entry, primaryEntry);
+          catalogue.ReplaceBinaryEntryWithLink(entry, link);
+
+          if (DateTime.Now - lastProgressReport > TimeSpan.FromSeconds(5))
+          {
+            progressCallback.Report(new ProgressReport(link.SourceFileInfo.FullyQualifiedFilename, currentFile, maxNumberOfFiles));
+            await catalogue.WriteCatalogue();
+            lastProgressReport = DateTime.Now;
+          }
         }
       }
       await catalogue.WriteCatalogue();

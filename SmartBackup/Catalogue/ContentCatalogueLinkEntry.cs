@@ -10,10 +10,25 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
   [XmlType("CCLE")]
   public class ContentCatalogueLinkEntry : ContentCatalogueEntry
   {
+    public ContentCatalogueLinkEntry()
+    {
+
+    }
+
+    public ContentCatalogueLinkEntry(ContentCatalogueBinaryEntry linkFrom, ContentCatalogueBinaryEntry linkTo)
+      : this()
+    {
+      Key = linkFrom.Key;
+      SourceFileInfo = linkFrom.SourceFileInfo;
+      Version = linkFrom.Version;
+      ContentCatalogueEntryKey = linkTo.Key;
+      ContentCatalogueEntryVersion = linkTo.Version;
+    }
+
     [XmlAttribute("ccek")]
-    string ContentCatalogueEntryKey { get; set; }
+    public string ContentCatalogueEntryKey { get; set; }
 
     [XmlAttribute("ccev")]
-    int ContentCatalogueEntryVersion { get; set; }
+    public int ContentCatalogueEntryVersion { get; set; }
   }
 }

@@ -35,6 +35,13 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       AddToKeySearch(item);
     }
 
+    public void Remove(ContentCatalogueEntry item)
+    {
+      Content.Remove(item);
+      if (KeySearchContent.ContainsKey(item.Key))
+        KeySearchContent.Remove(item.Key);
+    }
+
     [XmlArray("Content")]
     [XmlArrayItem("BTI")]
     public List<ContentCatalogueEntry> Content { get; private set; }
@@ -62,6 +69,12 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       {
         KeySearchContent.Add(item.SourceFileInfo.FullyQualifiedFilename, new List<ContentCatalogueEntry> { item });
       }
+    }
+
+    public void ReplaceContent(ContentCatalogueBinaryEntry binary, ContentCatalogueLinkEntry link)
+    {
+      Remove(binary);
+      Add(link);
     }
   }
 }

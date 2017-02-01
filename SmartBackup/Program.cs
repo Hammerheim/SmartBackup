@@ -114,7 +114,7 @@ namespace Vibe.Hammer.SmartBackup
       Console.WriteLine("Starting maintenance run...");
       var runner = new Runner(target);
       await runner.CalculateMissingHashes(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
-
+      await runner.ReplaceDublicatesWithLinks(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       Console.WriteLine("Done");
     }
     private static string ConvertUriStylePathToNative(string path)
