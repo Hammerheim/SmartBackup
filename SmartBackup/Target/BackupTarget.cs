@@ -206,6 +206,30 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
+    public async Task ExtractLinkedFile(ContentCatalogueBinaryEntry binaryFile, ContentCatalogueLinkEntry linkFile, DirectoryInfo extractionRoot)
+    {
+      var tempFile = await binaryHandler.ExtractFile(binaryFile);
+      if (tempFile != null)
+      {
+        var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, linkFile.SourceFileInfo.RelativePath, linkFile.SourceFileInfo.FileName));
+        targetFile.Directory.Create();
+        if (binaryFile.Compressed)
+        {
+          try
+          {
+            await compressionHandler.DecompressFile(tempFile, targetFile, CompressionModes.Stream);
+          }
+          finally
+          {
+            tempFile.Delete();
+          }
+        }
+        else
+          tempFile.MoveTo(targetFile.FullName);
+        File.SetLastWriteTime(targetFile.FullName, linkFile.SourceFileInfo.LastModified);
+        GC.WaitForPendingFinalizers();
+      }
+    }
     public async Task CalculateHashes(ContentCatalogueBinaryEntry entry)
     {
       var tempFile = await binaryHandler.ExtractFile(entry);
