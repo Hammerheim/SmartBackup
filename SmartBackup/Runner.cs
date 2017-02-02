@@ -134,7 +134,7 @@ namespace Vibe.Hammer.SmartBackup
             continue;
           }
 
-          var link = new ContentCatalogueLinkEntry(entry, primaryEntry);
+          var link = new ContentCatalogueUnclaimedLinkEntry(entry, primaryEntry);
           catalogue.ReplaceBinaryEntryWithLink(entry, link);
 
           await ReportProgress(progressCallback, link.SourceFileInfo);
@@ -154,9 +154,12 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    public Task<bool> DefragmentBinaries(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    public async Task<bool> DefragmentBinaries(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
     {
+      await InitializeContentCatalogue(targetRoot, progressCallback);
+
       throw new NotImplementedException();
+
     }
   }
 }

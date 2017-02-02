@@ -11,6 +11,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
   [XmlInclude(typeof(ContentCatalogueEntry))]
   [XmlInclude(typeof(ContentCatalogueBinaryEntry))]
   [XmlInclude(typeof(ContentCatalogueLinkEntry))]
+  [XmlInclude(typeof(ContentCatalogueUnclaimedLinkEntry))]
   public class TargetContentCatalogue
   {
     public TargetContentCatalogue()
