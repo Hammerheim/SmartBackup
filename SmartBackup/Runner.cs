@@ -65,18 +65,7 @@ namespace Vibe.Hammer.SmartBackup
       return true;
     }
 
-
-    public async Task<IFileLog> DeepScan(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
-    {
-      return await Scan(sourceRoot, targetRoot, progressCallback, true);
-    }
-
-    public async Task<IFileLog> ShallowScan(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
-    {
-      return await Scan(sourceRoot, targetRoot, progressCallback, false);
-    }
-
-    private async Task<IFileLog> Scan(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback, bool deepScan)
+    public async Task<IFileLog> Scan(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
     {
       var logger = new FileTreeLog();
       var recurser = new DirectoryRecurser();

@@ -136,7 +136,7 @@ namespace Vibe.Hammer.SmartBackup
       Console.WriteLine("Building source dictionary using shallow scan...");
       var runner = new Runner(target);
       shallowScanComplete = false;
-      var result = await runner.ShallowScan(source, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      var result = await runner.Scan(source, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       if (result != null)
         await runner.Backup(result, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
 
