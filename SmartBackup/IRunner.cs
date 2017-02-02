@@ -14,5 +14,6 @@ namespace Vibe.Hammer.SmartBackup
     Task<bool> Backup(IFileLog log, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback);
     Task<bool> CalculateMissingHashes(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback);
     Task<bool> ReplaceDublicatesWithLinks(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback);
+    Task<bool> DefragmentBinaries(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback);
   }
 }

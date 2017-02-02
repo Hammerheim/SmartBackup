@@ -30,24 +30,15 @@ namespace Vibe.Hammer.SmartBackup
       currentFile = 0;
       progressCallback.Report(new ProgressReport("Starting backup"));
       progressCallback.Report(new ProgressReport("Reading existing content catalogues if any..."));
-      if (catalogue == null)
-      {
-        catalogue = new ContentCatalogue(1024, targetRoot);
-        await catalogue.BuildFromExistingBackups(root, 1024);
-      }
+      await InitializeContentCatalogue(targetRoot, progressCallback);
 
       progressCallback.Report(new ProgressReport("Performing backup..."));
       lastProgressReport = DateTime.Now;
       maxNumberOfFiles = log.Files.Count();
       foreach (var file in log.Files)
       {
-        if (DateTime.Now - lastProgressReport > TimeSpan.FromSeconds(5))
-        {
-          progressCallback.Report(new ProgressReport(file.FullyQualifiedFilename, currentFile, maxNumberOfFiles));
-          await catalogue.WriteCatalogue();
-          lastProgressReport = DateTime.Now;
-        }
         currentFile++;
+        await ReportProgress(progressCallback, file);
         var currentVersion = catalogue.GetNewestVersion(file);
         if (currentVersion == null)
           await catalogue.InsertFile(file);
@@ -65,6 +56,16 @@ namespace Vibe.Hammer.SmartBackup
       return true;
     }
 
+    private async Task ReportProgress(IProgress<ProgressReport> progressCallback, FileInformation file)
+    {
+      if (DateTime.Now - lastProgressReport > TimeSpan.FromSeconds(5))
+      {
+        progressCallback.Report(new ProgressReport(file.FullyQualifiedFilename, currentFile, maxNumberOfFiles));
+        await catalogue.WriteCatalogue();
+        lastProgressReport = DateTime.Now;
+      }
+    }
+
     public async Task<IFileLog> Scan(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
     {
       var logger = new FileTreeLog();
@@ -80,12 +81,7 @@ namespace Vibe.Hammer.SmartBackup
 
     public async Task<bool> CalculateMissingHashes(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
     {
-      if (catalogue == null)
-      {
-        progressCallback.Report(new ProgressReport("Reading content catalogue..."));
-        catalogue = new ContentCatalogue(1024, targetRoot);
-        await catalogue.BuildFromExistingBackups(targetRoot, 1024);
-      }
+      await InitializeContentCatalogue(targetRoot, progressCallback);
 
       currentFile = 0;
       var allContentWithoutHashes = catalogue.GetAllContentEntriesWithoutHashes(progressCallback);
@@ -103,13 +99,8 @@ namespace Vibe.Hammer.SmartBackup
         var backupTarget = catalogue.GetBackupTargetFor(contentItem);
         await backupTarget.CalculateHashes(contentItem);
 
-        if (DateTime.Now - lastProgressReport > TimeSpan.FromSeconds(5))
-        {
-          progressCallback.Report(new ProgressReport(contentItem.SourceFileInfo.FullyQualifiedFilename, currentFile, maxNumberOfFiles));
-          await catalogue.WriteCatalogue();
-          lastProgressReport = DateTime.Now;
-        }
         currentFile++;
+        await ReportProgress(progressCallback, contentItem.SourceFileInfo);
       }
       await catalogue.WriteCatalogue();
       return true;
@@ -117,12 +108,7 @@ namespace Vibe.Hammer.SmartBackup
 
     public async Task<bool> ReplaceDublicatesWithLinks(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
     {
-      if (catalogue == null)
-      {
-        progressCallback.Report(new ProgressReport("Reading content catalogue..."));
-        catalogue = new ContentCatalogue(1024, targetRoot);
-        await catalogue.BuildFromExistingBackups(targetRoot, 1024);
-      }
+      await InitializeContentCatalogue(targetRoot, progressCallback);
 
       currentFile = 0;
       var allPossibleDublicates = catalogue.GetAllPossibleDublicates(progressCallback);
@@ -151,16 +137,26 @@ namespace Vibe.Hammer.SmartBackup
           var link = new ContentCatalogueLinkEntry(entry, primaryEntry);
           catalogue.ReplaceBinaryEntryWithLink(entry, link);
 
-          if (DateTime.Now - lastProgressReport > TimeSpan.FromSeconds(5))
-          {
-            progressCallback.Report(new ProgressReport(link.SourceFileInfo.FullyQualifiedFilename, currentFile, maxNumberOfFiles));
-            await catalogue.WriteCatalogue();
-            lastProgressReport = DateTime.Now;
-          }
+          await ReportProgress(progressCallback, link.SourceFileInfo);
         }
       }
       await catalogue.WriteCatalogue();
       return true;
+    }
+
+    private async Task InitializeContentCatalogue(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    {
+      if (catalogue == null)
+      {
+        progressCallback.Report(new ProgressReport("Reading content catalogue..."));
+        catalogue = new ContentCatalogue(1024, targetRoot);
+        await catalogue.BuildFromExistingBackups(targetRoot, 1024);
+      }
+    }
+
+    public Task<bool> DefragmentBinaries(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    {
+      throw new NotImplementedException();
     }
   }
 }
