@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
+using Vibe.Hammer.SmartBackup.Progress;
 
 namespace Vibe.Hammer.SmartBackup.Catalogue
 {
@@ -76,6 +77,11 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       Remove(binary);
       Add(link);
+    }
+
+    internal async Task ReclaimSpace(IProgress<ProgressReport> progressCallback)
+    {
+      throw new NotImplementedException();
     }
   }
 }

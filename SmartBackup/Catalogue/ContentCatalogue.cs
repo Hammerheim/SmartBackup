@@ -352,6 +352,16 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
+    public IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks()
+    {
+      var entries = new List<ContentCatalogueUnclaimedLinkEntry>();
+      foreach (var target in Targets)
+      {
+        entries.AddRange(target.Content.OfType<ContentCatalogueUnclaimedLinkEntry>());
+      }
+      return entries;
+    }
+
     public void ReplaceBinaryEntryWithLink(ContentCatalogueBinaryEntry binary, ContentCatalogueLinkEntry link)
     {
       foreach (var target in Targets)

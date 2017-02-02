@@ -158,8 +158,25 @@ namespace Vibe.Hammer.SmartBackup
     {
       await InitializeContentCatalogue(targetRoot, progressCallback);
 
-      throw new NotImplementedException();
+      currentFile = 0;
+      var allUnclaimedLinks = catalogue.GetUnclaimedLinks();
+      if (!allUnclaimedLinks.Any())
+      {
+        progressCallback.Report(new ProgressReport("There are no space that must be reclaimed."));
+        return true;
+      }
+      maxNumberOfFiles = allUnclaimedLinks.Count();
+      lastProgressReport = DateTime.Now;
 
+      progressCallback.Report(new ProgressReport("Reclaiming space..."));
+
+      foreach (var target in catalogue.Targets)
+      {
+        currentFile++;
+        await target.ReclaimSpace(progressCallback);
+      }
+      await catalogue.WriteCatalogue();
+      return true;
     }
   }
 }
