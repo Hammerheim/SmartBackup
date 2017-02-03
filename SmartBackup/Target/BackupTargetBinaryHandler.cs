@@ -274,14 +274,13 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    public async Task RetainDataIntervals(ContentCatalogueBinaryEntry[] intervals, int lowTail, IProgress<ProgressReport> progressCallback)
+    public async Task RetainDataIntervals(OffsetAndLengthPair[] intervals, int lowTail, IProgress<ProgressReport> progressCallback)
     {
       progressCallback.Report(new ProgressReport("Writing temporary file..."));
       var currentFile = 0;
       var numberOfFiles = intervals.Length;
       var tempFile = new FileInfo(Path.GetTempFileName());
       var time = DateTime.Now;
-      long currentOffset = lowTail;
 
       if (OpenStreamForReading())
       {
@@ -290,8 +289,6 @@ namespace Vibe.Hammer.SmartBackup
           foreach (var interval in intervals)
           {
             await CopyBytesToStream(targetStream, tempStream, interval);
-            interval.TargetOffset = currentOffset;
-            currentOffset += interval.TargetLength;
             currentFile++;
             if (DateTime.Now - time > TimeSpan.FromSeconds(5))
             {
@@ -306,9 +303,10 @@ namespace Vibe.Hammer.SmartBackup
 
       if (OpenStreamForWriting())
       {
+        var initialLength = targetStream.Length;
         using (var tempStream = tempFile.OpenRead())
         {
-          targetStream.Seek(lowTail, SeekOrigin.Begin);
+          targetStream.Position = lowTail;
           progressCallback.Report(new ProgressReport("Copying defragmented file back into catalogue..."));
           await CopyBytesToStream(tempStream, targetStream);
         }
@@ -316,22 +314,22 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    private async Task CopyBytesToStream(FileStream source, FileStream target, ContentCatalogueBinaryEntry interval)
+    private async Task CopyBytesToStream(FileStream source, FileStream target, OffsetAndLengthPair interval)
     {
-      source.Seek(interval.TargetOffset, SeekOrigin.Begin);
-      target.Seek(0, SeekOrigin.End);
+      source.Position = interval.Offset;
       var bytesRead = 0;
       var buffer = new byte[1000000];
       do
       {
-        var read = source.Read(buffer, 0, (int)Math.Min(interval.TargetLength, 1000000));
+        var read = source.Read(buffer, 0, (int)Math.Min(interval.Length, 1000000));
         if (read > 0)
         {
           await target.WriteAsync(buffer, 0, read);
           bytesRead += read;
         }
-      } while (bytesRead < interval.TargetLength);
+      } while (bytesRead < interval.Length);
     }
+
     private async Task CopyBytesToStream(FileStream source, FileStream target)
     {
       source.Seek(0L, SeekOrigin.Begin);

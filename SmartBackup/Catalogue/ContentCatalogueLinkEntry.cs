@@ -25,6 +25,16 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       ContentCatalogueEntryVersion = linkTo.Version;
     }
 
+    public ContentCatalogueLinkEntry(ContentCatalogueUnclaimedLinkEntry linkFrom)
+      : base()
+    {
+      ContentCatalogueEntryKey = linkFrom.ContentCatalogueEntryKey;
+      ContentCatalogueEntryVersion = linkFrom.ContentCatalogueEntryVersion;
+      Key = linkFrom.Key;
+      SourceFileInfo = linkFrom.SourceFileInfo;
+      Version = linkFrom.Version;
+    }
+
     [XmlAttribute("ccek")]
     public string ContentCatalogueEntryKey { get; set; }
 

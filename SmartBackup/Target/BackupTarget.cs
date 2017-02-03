@@ -252,37 +252,34 @@ namespace Vibe.Hammer.SmartBackup
 
     public async Task ReclaimSpace(IProgress<ProgressReport> progressCallback)
     {
-      var binaryEntries  = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().OrderBy(x => x.TargetOffset).ToArray();
-      //var intervals = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().Select(y => new OffsetAndLengthPair { Offset = y.TargetOffset, Length = y.TargetLength }).OrderBy(x => x.Offset).ToArray();
+      var binaryEntries = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().OrderBy(x => x.TargetOffset).ToArray();
+      var intervals = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().Select(y => new OffsetAndLengthPair { Offset = y.TargetOffset, Length = y.TargetLength }).OrderBy(x => x.Offset).ToArray();
 
-      //long temporaryTail = 1256 * 1024;
-      //foreach (var entry in binaryEntries)
-      //{
-      //  entry.TargetOffset = temporaryTail;
-      //  temporaryTail += entry.TargetLength;
-      //}
+      await binaryHandler.RetainDataIntervals(intervals, 1256 * 1024, progressCallback);
+      tail = RecalculateOffsets(binaryEntries);
 
-      await binaryHandler.RetainDataIntervals(binaryEntries, 1256 * 1024, progressCallback);
+      ConvertAllUnclaimedLinksToClaimedLinks();
+    }
 
-      var last = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().OrderByDescending(x => x.TargetOffset).FirstOrDefault();
-      if (last != null)
-        tail = last.TargetOffset + last.TargetLength;
-      else
-        tail = 1256 * 1024;
-
+    private void ConvertAllUnclaimedLinksToClaimedLinks()
+    {
       var unclaimedLinks = catalogue.Targets[ID].Content.OfType<ContentCatalogueUnclaimedLinkEntry>().ToArray();
       foreach (var unclaimedLink in unclaimedLinks)
       {
-        var newLink = new ContentCatalogueLinkEntry
-        {
-          ContentCatalogueEntryKey = unclaimedLink.ContentCatalogueEntryKey,
-          ContentCatalogueEntryVersion = unclaimedLink.ContentCatalogueEntryVersion,
-          Key = unclaimedLink.Key,
-          SourceFileInfo = unclaimedLink.SourceFileInfo,
-          Version = unclaimedLink.Version
-        };
-        catalogue.Targets[ID].ReplaceContent(unclaimedLink, newLink);
+        catalogue.Targets[ID].ReplaceContent(unclaimedLink, new ContentCatalogueLinkEntry(unclaimedLink));
       }
+    }
+
+    private long RecalculateOffsets(ContentCatalogueBinaryEntry[] binaryEntries)
+    {
+      long temporaryTail = 1256 * 1024;
+      foreach (var entry in binaryEntries)
+      {
+        entry.TargetOffset = temporaryTail;
+        temporaryTail += entry.TargetLength;
+      }
+
+      return temporaryTail;
     }
   }
 }
