@@ -73,15 +73,15 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    public void ReplaceContent(ContentCatalogueBinaryEntry binary, ContentCatalogueLinkEntry link)
+    public void ReplaceContent(ContentCatalogueEntry toBeReplaced, ContentCatalogueEntry replaceWithThis)
     {
-      Remove(binary);
-      Add(link);
+      Remove(toBeReplaced);
+      Add(replaceWithThis);
     }
 
     internal async Task ReclaimSpace(IProgress<ProgressReport> progressCallback)
     {
-      throw new NotImplementedException();
+      await BackupTarget.ReclaimSpace(progressCallback);
     }
   }
 }

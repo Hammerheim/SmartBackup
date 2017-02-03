@@ -10,6 +10,12 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
   [XmlType("CCULE")]
   public class ContentCatalogueUnclaimedLinkEntry : ContentCatalogueLinkEntry
   {
+    public ContentCatalogueUnclaimedLinkEntry()
+      : base()
+    {
+
+    }
+
     public ContentCatalogueUnclaimedLinkEntry(ContentCatalogueBinaryEntry linkFrom, ContentCatalogueBinaryEntry linkTo)
       : base(linkFrom, linkTo)
     {

@@ -169,7 +169,7 @@ namespace Vibe.Hammer.SmartBackup
       lastProgressReport = DateTime.Now;
 
       progressCallback.Report(new ProgressReport("Reclaiming space..."));
-
+       
       foreach (var target in catalogue.Targets)
       {
         currentFile++;

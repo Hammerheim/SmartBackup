@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Vibe.Hammer.SmartBackup.Catalogue;
+using Vibe.Hammer.SmartBackup.Progress;
+using Vibe.Hammer.SmartBackup.Target;
 
 namespace Vibe.Hammer.SmartBackup
 {
@@ -17,5 +19,6 @@ namespace Vibe.Hammer.SmartBackup
     Task<ContentCatalogue> ReadContentCatalogue();
     bool BinaryFileExists { get; }
     Task<FileInfo> ExtractFile(ContentCatalogueBinaryEntry file);
+    Task RetainDataIntervals(ContentCatalogueBinaryEntry[] intervals, int lowTail, IProgress<ProgressReport> progressCallback);
   }
 }

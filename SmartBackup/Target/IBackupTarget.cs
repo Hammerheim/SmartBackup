@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Vibe.Hammer.SmartBackup.Catalogue;
+using Vibe.Hammer.SmartBackup.Progress;
 
 namespace Vibe.Hammer.SmartBackup
 {
@@ -21,5 +22,6 @@ namespace Vibe.Hammer.SmartBackup
     Task ReadCatalogue();
     Task ExtractFile(ContentCatalogueBinaryEntry file, DirectoryInfo extractionRoot);
     Task CalculateHashes(ContentCatalogueBinaryEntry entry);
+    Task ReclaimSpace(IProgress<ProgressReport> progressCallback);
   }
 }

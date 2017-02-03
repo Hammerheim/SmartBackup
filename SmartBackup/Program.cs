@@ -17,7 +17,7 @@ namespace Vibe.Hammer.SmartBackup
   /// </summary>
   class Program
   {
-    // -backup -source:"C:\Test\Second tier" -target:"L:\Test"
+    // -backup -source:"C:\Test" -target:"E:\Test"
     // -extract -target:"L:\test2"
     // -maintenance -target:e:\test
     private static bool shallowScanComplete;
@@ -26,6 +26,7 @@ namespace Vibe.Hammer.SmartBackup
 
       DirectoryInfo source;
       DirectoryInfo target;
+
       if (args.Length < 2)
       {
         Console.WriteLine("You must specify an action: -extract or -backup");
@@ -115,6 +116,7 @@ namespace Vibe.Hammer.SmartBackup
       var runner = new Runner(target);
       await runner.CalculateMissingHashes(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       await runner.ReplaceDublicatesWithLinks(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      await runner.DefragmentBinaries(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       Console.WriteLine("Done");
     }
     private static string ConvertUriStylePathToNative(string path)
