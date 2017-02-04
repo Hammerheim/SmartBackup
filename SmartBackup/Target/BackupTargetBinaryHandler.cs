@@ -24,6 +24,7 @@ namespace Vibe.Hammer.SmartBackup
     private bool openForReading;
     private ICompressionHandler compressionHandler;
     private bool fileCreated = false;
+    private List<string> tempFilenames = new List<string>();
 
     public bool BinaryFileExists => targetFile.Exists;
 
@@ -75,7 +76,8 @@ namespace Vibe.Hammer.SmartBackup
 
     public async Task<FileInfo> ExtractFile(ContentCatalogueBinaryEntry file)
     {
-      var tempFilename = Path.GetTempFileName() + ".zip";
+      DeleteTempFiles();
+      var tempFile = GetTempFile();
       try
       {
         if (OpenStreamForReading())
@@ -84,8 +86,8 @@ namespace Vibe.Hammer.SmartBackup
             throw new IndexOutOfRangeException();
 
           targetStream.Seek(file.TargetOffset, SeekOrigin.Begin);
-          await CopyBytesToFile(file, tempFilename);
-          return new FileInfo(tempFilename);
+          await CopyBytesToFile(file, tempFile.FullName);
+          return tempFile;
         }
         return null;
       }
@@ -270,16 +272,18 @@ namespace Vibe.Hammer.SmartBackup
           targetStream = null;
           openForReading = false;
           openForWriting = false;
+          DeleteTempFiles();
         }
       }
     }
 
     public async Task RetainDataIntervals(OffsetAndLengthPair[] intervals, int lowTail, IProgress<ProgressReport> progressCallback)
     {
+      DeleteTempFiles();
       progressCallback.Report(new ProgressReport("Writing temporary file..."));
       var currentFile = 0;
       var numberOfFiles = intervals.Length;
-      var tempFile = new FileInfo(Path.GetTempFileName());
+      var tempFile = GetTempFile();
       var time = DateTime.Now;
 
       if (OpenStreamForReading())
@@ -334,6 +338,33 @@ namespace Vibe.Hammer.SmartBackup
     {
       source.Seek(0L, SeekOrigin.Begin);
       await source.CopyToAsync(target);
+    }
+
+    private FileInfo GetTempFile()
+    {
+      var path = Path.GetTempPath();
+      var file = Path.Combine(path, Guid.NewGuid().ToString());
+      file += ".tmp";
+      tempFilenames.Add(file);
+      return new FileInfo(file);
+    }
+
+    private void DeleteTempFiles()
+    {
+      GC.WaitForPendingFinalizers();
+      var files = tempFilenames.ToArray();
+      foreach (var file in files)
+      {
+        try
+        {
+          File.Delete(file);
+          tempFilenames.Remove(file);
+        }
+        catch
+        {
+          continue;
+        }
+      }
     }
   }
 }
