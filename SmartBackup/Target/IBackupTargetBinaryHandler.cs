@@ -19,7 +19,6 @@ namespace Vibe.Hammer.SmartBackup
     Task<ContentCatalogue> ReadContentCatalogue();
     bool BinaryFileExists { get; }
     Task<FileInfo> ExtractFile(ContentCatalogueBinaryEntry file);
-    Task RetainDataIntervals(OffsetAndLengthPair[] intervals, int lowTail, IProgress<ProgressReport> progressCallback);
     Task MoveBytes(long moveFromOffset, long numberOfBytesToMove, long newOffset);
   }
 }

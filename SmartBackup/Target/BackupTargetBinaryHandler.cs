@@ -23,7 +23,6 @@ namespace Vibe.Hammer.SmartBackup
     private bool openForWriting;
     private bool openForReading;
     private ICompressionHandler compressionHandler;
-    private bool fileCreated = false;
     private List<string> tempFilenames = new List<string>();
 
     public bool BinaryFileExists => targetFile.Exists;
@@ -37,7 +36,6 @@ namespace Vibe.Hammer.SmartBackup
         File.Copy(@".\SmartBackup.exe", targetFile.FullName);
         GC.WaitForPendingFinalizers();
       }
-      fileCreated = true;
     }
 
     ~BackupTargetBinaryHandler()
@@ -324,69 +322,6 @@ namespace Vibe.Hammer.SmartBackup
           remainingBytes -= read;
         } while (remainingBytes > 0);
       }
-    }
-
-    public async Task RetainDataIntervals(OffsetAndLengthPair[] intervals, int lowTail, IProgress<ProgressReport> progressCallback)
-    {
-      DeleteTempFiles();
-      progressCallback.Report(new ProgressReport("Writing temporary file..."));
-      var currentFile = 0;
-      var numberOfFiles = intervals.Length;
-      var tempFile = GetTempFile();
-      var time = DateTime.Now;
-
-      if (OpenStreamForReading())
-      {
-        using (var tempStream = tempFile.Create())
-        {
-          foreach (var interval in intervals)
-          {
-            await CopyBytesToStream(targetStream, tempStream, interval);
-            currentFile++;
-            if (DateTime.Now - time > TimeSpan.FromSeconds(5))
-            {
-              progressCallback.Report(new ProgressReport($"File {currentFile} of {numberOfFiles}", currentFile, numberOfFiles));
-              time = DateTime.Now;
-            }
-          }
-        }
-      }
-
-      currentFile = 0;
-
-      if (OpenStreamForWriting())
-      {
-        var initialLength = targetStream.Length;
-        using (var tempStream = tempFile.OpenRead())
-        {
-          targetStream.Position = lowTail;
-          progressCallback.Report(new ProgressReport("Copying defragmented file back into catalogue..."));
-          await CopyBytesToStream(tempStream, targetStream);
-        }
-        tempFile.Delete();
-      }
-    }
-
-    private async Task CopyBytesToStream(FileStream source, FileStream target, OffsetAndLengthPair interval)
-    {
-      source.Position = interval.Offset;
-      var bytesRead = 0;
-      var buffer = new byte[1000000];
-      do
-      {
-        var read = source.Read(buffer, 0, (int)Math.Min(interval.Length, 1000000));
-        if (read > 0)
-        {
-          await target.WriteAsync(buffer, 0, read);
-          bytesRead += read;
-        }
-      } while (bytesRead < interval.Length);
-    }
-
-    private async Task CopyBytesToStream(FileStream source, FileStream target)
-    {
-      source.Seek(0L, SeekOrigin.Begin);
-      await source.CopyToAsync(target);
     }
 
     private FileInfo GetTempFile()
