@@ -154,6 +154,31 @@ namespace Vibe.Hammer.SmartBackup
       return true;
     }
 
+    private bool OpenStreamForReadWrite()
+    {
+      if (targetStream != null && openForReading && openForWriting)
+        return true;
+
+      if (targetStream != null && openForWriting)
+      {
+        targetStream.Close();
+        targetStream.Dispose();
+        GC.WaitForPendingFinalizers();
+      }
+
+      if (targetStream != null && openForReading)
+      {
+        targetStream.Close();
+        targetStream.Dispose();
+        GC.WaitForPendingFinalizers();
+      }
+
+      targetStream = File.Open(targetFile.FullName, FileMode.Open);
+      openForWriting = true;
+      openForReading = true;
+      return true;
+    }
+
     private void CloseStream()
     {
       targetStream.Close();
@@ -274,6 +299,30 @@ namespace Vibe.Hammer.SmartBackup
           openForWriting = false;
           DeleteTempFiles();
         }
+      }
+    }
+
+    public async Task MoveBytes(long moveFromOffset, long numberOfBytesToMove, long newOffset)
+    {
+      if (OpenStreamForReadWrite())
+      {
+        long remainingBytes = numberOfBytesToMove;
+        long currentSourceOffset = moveFromOffset;
+        long currentTargetOffset = newOffset;
+        byte[] buffer = new byte[BackupTargetConstants.BufferSize];
+        do
+        {
+          targetStream.Seek(currentSourceOffset, SeekOrigin.Begin);
+          var read = await targetStream.ReadAsync(buffer, 0, (int)Math.Min(remainingBytes, BackupTargetConstants.BufferSize));
+          currentSourceOffset += read;
+          if (read > 0)
+          {
+            targetStream.Seek(currentTargetOffset, SeekOrigin.Begin);
+            await targetStream.WriteAsync(buffer, 0, read);
+            currentTargetOffset += read;
+          }
+          remainingBytes -= read;
+        } while (remainingBytes > 0);
       }
     }
 

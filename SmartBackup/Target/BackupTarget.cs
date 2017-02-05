@@ -252,11 +252,31 @@ namespace Vibe.Hammer.SmartBackup
 
     public async Task ReclaimSpace(IProgress<ProgressReport> progressCallback)
     {
-      var binaryEntries = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().OrderBy(x => x.TargetOffset).ToArray();
-      var intervals = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().Select(y => new OffsetAndLengthPair { Offset = y.TargetOffset, Length = y.TargetLength }).OrderBy(x => x.Offset).ToArray();
+      var entries = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().OrderBy(x => x.TargetOffset).ToArray();
 
-      await binaryHandler.RetainDataIntervals(intervals, BackupTargetConstants.DataOffset, progressCallback);
-      tail = RecalculateOffsets(binaryEntries);
+      long currentOffset = BackupTargetConstants.DataOffset;
+      var time = DateTime.Now;
+      for (int i = 0; i < entries.Length; i++)
+      {
+        var entry = entries[i];
+        if (entry.TargetOffset > currentOffset)
+        {
+          await binaryHandler.MoveBytes(entry.TargetOffset, entry.TargetLength, currentOffset);
+          entry.TargetOffset = currentOffset;
+          currentOffset += entry.TargetLength;
+        }
+
+        if (DateTime.Now - time > TimeSpan.FromSeconds(5))
+        {
+          progressCallback.Report(new ProgressReport($"Moving {i} of {entries.Length}", i, entries.Length));
+          time = DateTime.Now;
+        }
+      }
+      if (tail > currentOffset)
+        progressCallback.Report(new ProgressReport($"Reclaimed {(tail / (1024 * 1024)) - (currentOffset / (1024 * 1024))} MB"));
+      else
+        progressCallback.Report(new ProgressReport("No space was reclaimed"));
+      tail = currentOffset;
 
       ConvertAllUnclaimedLinksToClaimedLinks();
     }
