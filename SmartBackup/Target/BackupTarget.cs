@@ -19,7 +19,7 @@ namespace Vibe.Hammer.SmartBackup
     private ContentCatalogue catalogue;
     private IBackupTargetBinaryHandler binaryHandler;
     private long maxLength;
-    private long tail = 1256 * 1024;
+    private long tail = BackupTargetConstants.DataOffset;
     private string filename;
     private ICompressionHandler compressionHandler;
     private IHasher primaryHasher;
@@ -170,11 +170,11 @@ namespace Vibe.Hammer.SmartBackup
     {
       if (!catalogue.SearchTargets.ContainsKey(ID))
       {
-        tail = 1256 * 1024;
+        tail = BackupTargetConstants.DataOffset;
         return;
       }
       long calculatedTail = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().Max(item => item.TargetOffset + item.TargetLength);
-      tail = Math.Max(calculatedTail, 1256 * 1024);
+      tail = Math.Max(calculatedTail, BackupTargetConstants.DataOffset);
     }
 
     private void EnsureInitialized()
@@ -255,7 +255,7 @@ namespace Vibe.Hammer.SmartBackup
       var binaryEntries = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().OrderBy(x => x.TargetOffset).ToArray();
       var intervals = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().Select(y => new OffsetAndLengthPair { Offset = y.TargetOffset, Length = y.TargetLength }).OrderBy(x => x.Offset).ToArray();
 
-      await binaryHandler.RetainDataIntervals(intervals, 1256 * 1024, progressCallback);
+      await binaryHandler.RetainDataIntervals(intervals, BackupTargetConstants.DataOffset, progressCallback);
       tail = RecalculateOffsets(binaryEntries);
 
       ConvertAllUnclaimedLinksToClaimedLinks();
@@ -272,7 +272,7 @@ namespace Vibe.Hammer.SmartBackup
 
     private long RecalculateOffsets(ContentCatalogueBinaryEntry[] binaryEntries)
     {
-      long temporaryTail = 1256 * 1024;
+      long temporaryTail = BackupTargetConstants.DataOffset;
       foreach (var entry in binaryEntries)
       {
         entry.TargetOffset = temporaryTail;

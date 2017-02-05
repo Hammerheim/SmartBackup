@@ -18,7 +18,7 @@ namespace Vibe.Hammer.SmartBackup
   {
     private FileInfo targetFile;
     private int megaByte = Convert.ToInt32(Math.Pow(2, 20));
-    private int contentCatalogueOffset = 256 * 1024;
+    private int contentCatalogueOffset = BackupTargetConstants.ContentCatalogueOffset;
     private FileStream targetStream;
     private bool openForWriting;
     private bool openForReading;
@@ -82,7 +82,7 @@ namespace Vibe.Hammer.SmartBackup
       {
         if (OpenStreamForReading())
         {
-          if (targetStream.Length <= file.TargetOffset)
+          if (targetStream.Length < file.TargetOffset)
             throw new IndexOutOfRangeException();
 
           targetStream.Seek(file.TargetOffset, SeekOrigin.Begin);
