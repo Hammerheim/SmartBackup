@@ -25,12 +25,12 @@ namespace Vibe.Hammer.SmartBackup
       catalogue = null;
       root = targetRoot;
     }
-    public async Task<bool> Backup(IFileLog log, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    public async Task<bool> Backup(IFileLog log, DirectoryInfo targetRoot, int fileSize, IProgress<ProgressReport> progressCallback)
     {
       currentFile = 0;
       progressCallback.Report(new ProgressReport("Starting backup"));
       progressCallback.Report(new ProgressReport("Reading existing content catalogues if any..."));
-      await InitializeContentCatalogue(targetRoot, progressCallback);
+      await InitializeContentCatalogue(targetRoot, fileSize, progressCallback);
 
       progressCallback.Report(new ProgressReport("Performing backup..."));
       lastProgressReport = DateTime.Now;
@@ -62,13 +62,13 @@ namespace Vibe.Hammer.SmartBackup
       return true;
     }
 
-    public async Task<bool> IdentifyDeletedFiles(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    public async Task<bool> IdentifyDeletedFiles(DirectoryInfo targetRoot, int fileSize, IProgress<ProgressReport> progressCallback)
     {
       currentFile = 0;
       var numberOfDeletedFilesFound = 0;
       progressCallback.Report(new ProgressReport("Starting run to look for deleted files..."));
       progressCallback.Report(new ProgressReport("Reading existing content catalogues if any..."));
-      await InitializeContentCatalogue(targetRoot, progressCallback);
+      await InitializeContentCatalogue(targetRoot, fileSize, progressCallback);
 
       progressCallback.Report(new ProgressReport("Tombstoning deleted files..."));
       lastProgressReport = DateTime.Now;
@@ -125,9 +125,9 @@ namespace Vibe.Hammer.SmartBackup
 
     }
 
-    public async Task<bool> CalculateMissingHashes(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    public async Task<bool> CalculateMissingHashes(DirectoryInfo targetRoot, int fileSize, IProgress<ProgressReport> progressCallback)
     {
-      await InitializeContentCatalogue(targetRoot, progressCallback);
+      await InitializeContentCatalogue(targetRoot, fileSize, progressCallback);
 
       currentFile = 0;
       var allContentWithoutHashes = catalogue.GetAllContentEntriesWithoutHashes(progressCallback);
@@ -152,9 +152,9 @@ namespace Vibe.Hammer.SmartBackup
       return true;
     }
 
-    public async Task<bool> ReplaceDublicatesWithLinks(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    public async Task<bool> ReplaceDublicatesWithLinks(DirectoryInfo targetRoot, int fileSize, IProgress<ProgressReport> progressCallback)
     {
-      await InitializeContentCatalogue(targetRoot, progressCallback);
+      await InitializeContentCatalogue(targetRoot, fileSize, progressCallback);
 
       currentFile = 0;
       var allPossibleDublicates = catalogue.GetAllPossibleDublicates(progressCallback);
@@ -190,19 +190,19 @@ namespace Vibe.Hammer.SmartBackup
       return true;
     }
 
-    private async Task InitializeContentCatalogue(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    private async Task InitializeContentCatalogue(DirectoryInfo targetRoot, int fileSize, IProgress<ProgressReport> progressCallback)
     {
       if (catalogue == null)
       {
         progressCallback.Report(new ProgressReport("Reading content catalogue..."));
-        catalogue = new ContentCatalogue(1024, targetRoot);
-        await catalogue.BuildFromExistingBackups(targetRoot, 1024);
+        catalogue = new ContentCatalogue(fileSize, targetRoot);
+        await catalogue.BuildFromExistingBackups(targetRoot, fileSize);
       }
     }
 
-    public async Task<bool> DefragmentBinaries(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    public async Task<bool> DefragmentBinaries(DirectoryInfo targetRoot, int fileSize, IProgress<ProgressReport> progressCallback)
     {
-      await InitializeContentCatalogue(targetRoot, progressCallback);
+      await InitializeContentCatalogue(targetRoot, fileSize, progressCallback);
 
       currentFile = 0;
       var allUnclaimedLinks = catalogue.GetUnclaimedLinks();

@@ -45,12 +45,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ArgumentParser.cs" />
+    <Compile Include="Arguments.cs" />
     <Compile Include="Catalogue\ContentCatalogueBinaryEntry.cs" />
     <Compile Include="Catalogue\ContentCatalogueLinkEntry.cs" />
     <Compile Include="Catalogue\ContentCatalogueUnclaimedLinkEntry.cs" />
     <Compile Include="Compression\DecompressionOfStreamFailedException.cs" />
     <Compile Include="Compression\FileCompressionAsArchiveFailedException.cs" />
     <Compile Include="Compression\FileCompressionAsStramFailedException.cs" />
+    <Compile Include="ProgramAction.cs" />
     <Compile Include="Progress\ActionTypes.cs" />
     <Compile Include="Compression\CompressionModes.cs" />
     <Compile Include="Progress\ProgressReport.cs" />

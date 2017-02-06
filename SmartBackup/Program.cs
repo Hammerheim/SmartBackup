@@ -23,100 +23,90 @@ namespace Vibe.Hammer.SmartBackup
     private static bool shallowScanComplete;
     static void Main(string[] args)
     {
-
-      DirectoryInfo source;
-      DirectoryInfo target;
-
-      if (args.Length < 2)
+      try
       {
-        Console.WriteLine("You must specify an action: -extract or -backup");
-        Console.WriteLine("Use: -extract -target:path");
-        Console.WriteLine("Use: -backup -source:path -target:path");
-        return;
-      }
-
-      if (args[0].ToLower().StartsWith("-backup"))
-      {
-        if (args[1].ToLower().StartsWith("-source:"))
+        var arguments = ArgumentParser.Parse(args);
+        if (arguments.PrintHelp)
         {
-          var value = args[1].Substring(8);
-          value = value.Replace('"', ' ');
-          value = value.Trim();
-          source = new DirectoryInfo(value);
-        }
-        else
-        {
-          Console.WriteLine("You must specify an action: -extract or -backup");
-          Console.WriteLine("Use: -extract -target:path");
-          Console.WriteLine("Use: -backup -source:path");
+          PrintOptions();
           return;
         }
-        if (args[2].ToLower().StartsWith("-target:"))
+
+        if (arguments.ShouldBackup)
         {
-          var value = args[2].Substring(8);
-          value = value.Replace('"', ' ');
-          value = value.Trim();
-          target = new DirectoryInfo(value);
+          MainBackupAsync(arguments.Source, arguments.Target, arguments.FileSize).Wait();
         }
-        else
+        if (arguments.ShouldMaintain)
         {
-          Console.WriteLine("You must specify an action: -extract or -backup");
-          Console.WriteLine("Use: -extract -target:path");
-          Console.WriteLine("Use: -backup -source:path");
-          return;
+          MainMaintenanceAsync(arguments.Target, arguments.FileSize).Wait();
         }
-        MainBackupAsync(source, target).Wait();
+
+        if (arguments.ShouldExtract)
+        {
+          MainExtractorAsync(arguments.Source, arguments.Target, arguments.FileSize).Wait();
+        }
         Console.WriteLine("Done");
+      }
+      catch (ArgumentException err)
+      {
+        Console.WriteLine($"Invalid parameter: {err.ParamName}");
+        PrintOptions();
         return;
-      }
-      else if (args[0].ToLower().StartsWith("-extract"))
-      {
-        if (args[1].ToLower().StartsWith("-target:"))
-        {
-          var value = args[1].Substring(8);
-          value = value.Replace('"', ' ');
-          value = value.Trim();
-          target = new DirectoryInfo(value);
-          MainExtractorAsync(target).Wait();
-          Console.WriteLine("Done");
-          return;
-        }
-      }
-      else if (args[0].ToLower().StartsWith("-maintenance"))
-      {
-        if (args[1].ToLower().StartsWith("-target:"))
-        {
-          var value = args[1].Substring(8);
-          value = value.Replace('"', ' ');
-          value = value.Trim();
-          target = new DirectoryInfo(value);
-          MainMaintenanceAsync(target).Wait();
-          Console.WriteLine("Done");
-          return;
-        }
       }
     }
 
-    private static async Task MainExtractorAsync(DirectoryInfo target)
+    private static void PrintOptions()
     {
-      var catalogue = new ContentCatalogue();
-      var assemblyFile = new FileInfo(ConvertUriStylePathToNative(Assembly.GetEntryAssembly().CodeBase));
-      await catalogue.BuildFromExistingBackups(assemblyFile.Directory, 1024);
+      Console.WriteLine(@"SmartBackup can be run either using the stand-alone executable or by executing a file containing a backup.");
+      Console.WriteLine(@"The following options are avilable:");
+      Console.WriteLine(@"Actions: (At least one must be specified");
+      Console.WriteLine(@"-BackUp:      Perform backup");
+      Console.WriteLine(@"-Maintenance: Scan the files for dublicates and reclaim space. Note: Files on disk is not shrunk.");
+      Console.WriteLine(@"-Extract:     Extract all files");
+      Console.WriteLine(@"");
+      Console.WriteLine(@"Options");
+      Console.WriteLine(@"-source:<Directory> Specify the source directory to backup from");
+      Console.WriteLine(@"-target:<Directory> Specify where to store files when backing up or find the files for maintenance");
+      Console.WriteLine(@"-FileSize:<integer> Specify the size of backup catalogues in mega bytes. Default: 1024");
+      Console.WriteLine(@"");
+      Console.WriteLine(@"Examples:");
+      Console.WriteLine(@"SmartBackup -b -m -s:c:\test -t:e:\backup -fs:1024");
+      Console.WriteLine(@"This command runs a backup using the c:\Test directory as the source and storing the files in e:\backup");
+      Console.WriteLine(@"using a catalogue size of 1024 MB (1 GB)");
+      Console.WriteLine(@"");
+      Console.WriteLine(@"SmartBackup -e -s:e:\backup -t:c:\test");
+      Console.WriteLine(@"This command extracts all files found in catalogues in the e:\backup directory and writing the files");
+      Console.WriteLine(@"to the c:\test directory");
+      Console.WriteLine(@"You must specify an action: -extract or -backup");
+      Console.WriteLine(@"Use: -extract -target:path");
+      Console.WriteLine(@"Use: -backup -source:path -target:path");
+    }
 
-      Console.WriteLine($"Extracting files from {assemblyFile.Directory} to {target.FullName}");
+    private static async Task MainExtractorAsync(DirectoryInfo source, DirectoryInfo target, int fileSize)
+    {
+      if (source.FullName == string.Empty)
+      {
+        var assemblyFile = new FileInfo(ConvertUriStylePathToNative(Assembly.GetEntryAssembly().CodeBase));
+        source = assemblyFile.Directory;
+      }
+      var catalogue = new ContentCatalogue();
+      
+      await catalogue.BuildFromExistingBackups(source, fileSize);
+
+      Console.WriteLine($"Extracting files from {source} to {target.FullName}");
       var callbackObject = new Callback();
       await catalogue.ExtractAll(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
     }
 
-    private static async Task MainMaintenanceAsync(DirectoryInfo target)
+    private static async Task MainMaintenanceAsync(DirectoryInfo target, int fileSize)
     {
       var callbackObject = new Callback();
 
       Console.WriteLine("Starting maintenance run...");
       var runner = new Runner(target);
-      await runner.CalculateMissingHashes(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
-      await runner.ReplaceDublicatesWithLinks(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
-      await runner.DefragmentBinaries(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      await runner.CalculateMissingHashes(target, fileSize, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      await runner.ReplaceDublicatesWithLinks(target, fileSize, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      await runner.DefragmentBinaries(target, fileSize, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       Console.WriteLine("Done");
     }
     private static string ConvertUriStylePathToNative(string path)
@@ -126,12 +116,12 @@ namespace Vibe.Hammer.SmartBackup
       path = path.Replace('/', '\\');
       return path;
     }
-    private static async Task MainBackupAsync(DirectoryInfo source, DirectoryInfo target)
+    private static async Task MainBackupAsync(DirectoryInfo source, DirectoryInfo target, int fileSize)
     {
-      await ShallowScan(source, target);
+      await ShallowScan(source, target, fileSize);
     }
 
-    private static async Task ShallowScan(DirectoryInfo source, DirectoryInfo target)
+    private static async Task ShallowScan(DirectoryInfo source, DirectoryInfo target, int fileSize)
     {
       var callbackObject = new Callback();
 
@@ -141,8 +131,8 @@ namespace Vibe.Hammer.SmartBackup
       var result = await runner.Scan(source, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       if (result != null)
       {
-        await runner.Backup(result, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
-        await runner.IdentifyDeletedFiles(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+        await runner.Backup(result, target, fileSize, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+        await runner.IdentifyDeletedFiles(target, fileSize, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       }
 
       Console.WriteLine("Done");
