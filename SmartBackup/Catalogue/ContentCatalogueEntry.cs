@@ -46,5 +46,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
       set { key = value; }
     }
+
+    [XmlAttribute("d")]
+    public bool Deleted { get; set; }
   }
 }

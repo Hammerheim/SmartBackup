@@ -179,14 +179,14 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    public async Task InsertFile(FileInformation file)
+    public async Task InsertFile(FileInformation file, int version)
     {
       var backupTarget = GetBackupTargetForFile(file);
       if (backupTarget == null)
       {
         backupTarget = await CreateNewBackupTarget();
       }
-      await backupTarget.AddFile(file);
+      await backupTarget.AddFile(file, version);
     }
 
     public async Task CloseTargets()
@@ -209,6 +209,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     private async Task ExtractFile(string key, DirectoryInfo extractionRoot)
     {
       var item = GetNewestVersion(key);
+      if (item.Deleted)
+        return;
+
       var linkItem = item as ContentCatalogueLinkEntry;
       if (linkItem != null)
       {
@@ -230,6 +233,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     private async Task ExtractFile(string key, int version, DirectoryInfo extractionRoot)
     {
       var item = GetSpecificVersion(key, version);
+      if (item.Deleted)
+        return;
+
       var linkItem = item as ContentCatalogueLinkEntry;
       if (linkItem != null)
       {
@@ -250,6 +256,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     private async Task ExtractLinkedFile(ContentCatalogueLinkEntry link, DirectoryInfo extractionRoot)
     {
       var item = GetSpecificVersion(link.ContentCatalogueEntryKey, link.ContentCatalogueEntryVersion);
+
       var newLinkItem = item as ContentCatalogueLinkEntry;
       if (newLinkItem != null)
       {
@@ -402,6 +409,17 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         }
       }
 
+    }
+
+    public IEnumerable<ContentCatalogueEntry> EnumerateContent()
+    {
+      foreach (var target in Targets)
+      {
+        foreach (var entry in target.Content)
+        {
+          yield return entry;
+        }
+      }
     }
   }
 }

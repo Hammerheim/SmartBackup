@@ -140,7 +140,10 @@ namespace Vibe.Hammer.SmartBackup
       shallowScanComplete = false;
       var result = await runner.Scan(source, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       if (result != null)
+      {
         await runner.Backup(result, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+        await runner.IdentifyDeletedFiles(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      }
 
       Console.WriteLine("Done");
     }

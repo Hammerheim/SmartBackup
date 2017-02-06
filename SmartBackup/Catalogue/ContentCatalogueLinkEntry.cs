@@ -20,6 +20,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       Key = linkFrom.Key;
       SourceFileInfo = linkFrom.SourceFileInfo;
+      Deleted = linkFrom.Deleted;
       Version = linkFrom.Version;
       ContentCatalogueEntryKey = linkTo.Key;
       ContentCatalogueEntryVersion = linkTo.Version;
@@ -33,6 +34,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       Key = linkFrom.Key;
       SourceFileInfo = linkFrom.SourceFileInfo;
       Version = linkFrom.Version;
+      Deleted = linkFrom.Deleted;
     }
 
     [XmlAttribute("ccek")]

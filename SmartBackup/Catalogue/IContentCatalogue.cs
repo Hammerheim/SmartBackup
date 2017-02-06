@@ -18,5 +18,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     IEnumerable<ContentCatalogueBinaryEntry> GetAllContentEntriesWithoutHashes(IProgress<ProgressReport> progressCallback);
     BackupTarget GetBackupTargetFor(ContentCatalogueEntry entry);
     bool IsKnownPrimaryHash(string primaryContentHash);
+    IEnumerable<ContentCatalogueEntry> EnumerateContent();
   }
 }

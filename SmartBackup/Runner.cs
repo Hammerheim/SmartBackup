@@ -41,15 +41,52 @@ namespace Vibe.Hammer.SmartBackup
         await ReportProgress(progressCallback, file);
         var currentVersion = catalogue.GetNewestVersion(file);
         if (currentVersion == null)
-          await catalogue.InsertFile(file);
+          await catalogue.InsertFile(file, 1);
         else
         {
           if (currentVersion.SourceFileInfo.LastModified < file.LastModified)
           {
-            currentVersion.Version += 1;
-            await catalogue.InsertFile(file);
+            await catalogue.InsertFile(file, currentVersion.Version + 1);
+          } 
+          else if (currentVersion.SourceFileInfo.LastModified == file.LastModified && currentVersion.Deleted)
+          {
+            // The deleted file has likely been restored, but there is a slight posibility that it is not the same file. Therefore the file is reinserted. 
+            // If the binaries are the same, a maintenance run will convert one of them to a link and reclaim the space. This is the safe option rather than 
+            // just setting the currentVersion.Deleted = false.
+            await catalogue.InsertFile(file, currentVersion.Version + 1);
           }
         }
+      }
+      await catalogue.CloseTargets();
+      progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
+      return true;
+    }
+
+    public async Task<bool> IdentifyDeletedFiles(DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    {
+      currentFile = 0;
+      var numberOfDeletedFilesFound = 0;
+      progressCallback.Report(new ProgressReport("Starting run to look for deleted files..."));
+      progressCallback.Report(new ProgressReport("Reading existing content catalogues if any..."));
+      await InitializeContentCatalogue(targetRoot, progressCallback);
+
+      progressCallback.Report(new ProgressReport("Tombstoning deleted files..."));
+      lastProgressReport = DateTime.Now;
+      
+      var entries = catalogue.EnumerateContent().ToList();
+      maxNumberOfFiles = entries.Count();
+      foreach (var entry in entries)
+      {
+        currentFile++;
+        if (!entry.Deleted)
+        {
+          if (!File.Exists(entry.SourceFileInfo.FullyQualifiedFilename))
+          {
+            entry.Deleted = true;
+            numberOfDeletedFilesFound++;
+          }
+        }
+        await ReportProgress(progressCallback, $"Found {numberOfDeletedFilesFound} deleted file(s)");
       }
       await catalogue.CloseTargets();
       progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
@@ -66,6 +103,15 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
+    private async Task ReportProgress(IProgress<ProgressReport> progressCallback, string message)
+    {
+      if (DateTime.Now - lastProgressReport > TimeSpan.FromSeconds(5))
+      {
+        progressCallback.Report(new ProgressReport(message, currentFile, maxNumberOfFiles));
+        await catalogue.WriteCatalogue();
+        lastProgressReport = DateTime.Now;
+      }
+    }
     public async Task<IFileLog> Scan(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
     {
       var logger = new FileTreeLog();

@@ -17,7 +17,7 @@ namespace Vibe.Hammer.SmartBackup
     bool Contains(string key);
     bool Contains(string key, int version);
     bool CanContain(FileInformation file);
-    Task AddFile(FileInformation file);
+    Task AddFile(FileInformation file, int version);
     Task WriteCatalogue(bool closeStreams);
     Task ReadCatalogue();
     Task ExtractFile(ContentCatalogueBinaryEntry file, DirectoryInfo extractionRoot);

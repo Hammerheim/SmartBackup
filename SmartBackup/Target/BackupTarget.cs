@@ -44,18 +44,20 @@ namespace Vibe.Hammer.SmartBackup
 
     public int TargetId { get; set; }
 
-    public async Task AddFile(FileInformation file)
+    public async Task AddFile(FileInformation file, int version)
     {
       EnsureInitialized();
-      await InsertFile(file);
+      await InsertFile(file, version);
     }
 
-    private async Task InsertFile(FileInformation file)
+    private async Task InsertFile(FileInformation file, int version)
     {
       var item = new ContentCatalogueBinaryEntry
       {
         SourceFileInfo = file,
-        TargetOffset = tail
+        TargetOffset = tail,
+        Deleted = false,
+        Version = version
       };
 
       var sourceFile = new FileInfo(file.FullyQualifiedFilename);
