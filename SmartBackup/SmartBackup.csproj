@@ -92,6 +92,7 @@
     <Compile Include="Runner.cs" />
     <Compile Include="SimpleFileHandler.cs" />
     <Compile Include="SimpleFileLog.cs" />
+    <Compile Include="Target\UnableToOpenStreamException.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

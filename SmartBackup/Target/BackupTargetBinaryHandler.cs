@@ -20,8 +20,7 @@ namespace Vibe.Hammer.SmartBackup
     private int megaByte = Convert.ToInt32(Math.Pow(2, 20));
     private int contentCatalogueOffset = BackupTargetConstants.ContentCatalogueOffset;
     private FileStream targetStream;
-    private bool openForWriting;
-    private bool openForReading;
+    private bool steamIsOpen;
     private ICompressionHandler compressionHandler;
     private List<string> tempFilenames = new List<string>();
 
@@ -55,7 +54,7 @@ namespace Vibe.Hammer.SmartBackup
 
       try
       {
-        if (OpenStreamForWriting())
+        if (await OpenStream())
         {
           targetStream.Seek(file.TargetOffset, SeekOrigin.Begin);
           using (var sourceStream = File.OpenRead(sourceFile.FullName))
@@ -64,6 +63,8 @@ namespace Vibe.Hammer.SmartBackup
           }
           return true;
         }
+        else
+          throw new UnableToOpenStreamException();
       }
       catch (Exception err)
       {
@@ -78,7 +79,7 @@ namespace Vibe.Hammer.SmartBackup
       var tempFile = GetTempFile();
       try
       {
-        if (OpenStreamForReading())
+        if (await OpenStream())
         {
           if (targetStream.Length < file.TargetOffset)
             throw new IndexOutOfRangeException();
@@ -115,75 +116,57 @@ namespace Vibe.Hammer.SmartBackup
       GC.WaitForPendingFinalizers();
     }
 
-    private bool OpenStreamForWriting()
+    private async Task<bool> OpenStream()
     {
-      if (targetStream != null && openForWriting)
+      if (targetStream != null && steamIsOpen)
         return true;
 
-      if (targetStream != null && openForReading)
-      {
-        targetStream.Close();
-        targetStream.Dispose();
-        GC.WaitForPendingFinalizers();
-      }
-
-      targetStream = File.OpenWrite(targetFile.FullName);
-      openForWriting = true;
-      openForReading = false;
-      return true;
-    }
-
-
-    private bool OpenStreamForReading()
-    {
-      if (targetStream != null && openForReading)
-        return true;
-
-      if (targetStream != null && openForWriting)
-      {
-        targetStream.Close();
-        targetStream.Dispose();
-        GC.WaitForPendingFinalizers();
-      }
-
-      targetStream = File.OpenRead(targetFile.FullName);
-      openForWriting = false;
-      openForReading = true;
-      return true;
-    }
-
-    private bool OpenStreamForReadWrite()
-    {
-      if (targetStream != null && openForReading && openForWriting)
-        return true;
-
-      if (targetStream != null && openForWriting)
-      {
-        targetStream.Close();
-        targetStream.Dispose();
-        GC.WaitForPendingFinalizers();
-      }
-
-      if (targetStream != null && openForReading)
-      {
-        targetStream.Close();
-        targetStream.Dispose();
-        GC.WaitForPendingFinalizers();
-      }
+      if (!await EnsureFileReleased())
+        return false;
 
       targetStream = File.Open(targetFile.FullName, FileMode.Open);
-      openForWriting = true;
-      openForReading = true;
+      steamIsOpen = true;
       return true;
     }
 
+    private async Task<bool> EnsureFileReleased()
+    {
+      int tries = 0;
+      while (IsTargetLocked() && ++tries < 10)
+      {
+        await Task.Delay(1000);
+      }
+      await Task.Delay(1000);
+      return tries < 10;
+    }
+
+    private bool IsTargetLocked()
+    {
+      FileStream stream = null;
+
+      try
+      {
+        stream = targetFile.Open(FileMode.Open, FileAccess.Read, FileShare.None);
+      }
+      catch (IOException)
+      {
+        return true;
+      }
+      finally
+      {
+        if (stream != null)
+          stream.Close();
+      }
+
+      //file is not locked
+      return false;
+    }
     private void CloseStream()
     {
       targetStream.Close();
       targetStream.Dispose();
       GC.WaitForPendingFinalizers();
-      openForWriting = false;
-      openForReading = false;
+      steamIsOpen = false;
     }
 
     public Task<bool> RemoveFile(ContentCatalogueBinaryEntry file)
@@ -213,12 +196,14 @@ namespace Vibe.Hammer.SmartBackup
           resultBuffer = resultStream.ToArray();
         }
         contentLength = resultBuffer.Length;
-        if (OpenStreamForWriting())
+        if (await OpenStream())
         {
           targetStream.Seek(contentCatalogueOffset, SeekOrigin.Begin);
           targetStream.Write(BitConverter.GetBytes(xmlLength), 0, sizeof(int));
           targetStream.Write(resultBuffer, 0, (int)contentLength);
         }
+        else
+          throw new UnableToOpenStreamException();
 
         if (closeStreams)
           CloseStream();
@@ -232,7 +217,7 @@ namespace Vibe.Hammer.SmartBackup
 
     public async Task<ContentCatalogue> ReadContentCatalogue()
     {
-      if (OpenStreamForReading())
+      if (await OpenStream())
       {
         try
         {
@@ -293,8 +278,7 @@ namespace Vibe.Hammer.SmartBackup
           targetStream.Close();
           targetStream.Dispose();
           targetStream = null;
-          openForReading = false;
-          openForWriting = false;
+          steamIsOpen = false;
           DeleteTempFiles();
         }
       }
@@ -302,7 +286,7 @@ namespace Vibe.Hammer.SmartBackup
 
     public async Task MoveBytes(long moveFromOffset, long numberOfBytesToMove, long newOffset)
     {
-      if (OpenStreamForReadWrite())
+      if (await OpenStream())
       {
         long remainingBytes = numberOfBytesToMove;
         long currentSourceOffset = moveFromOffset;
@@ -322,6 +306,8 @@ namespace Vibe.Hammer.SmartBackup
           remainingBytes -= read;
         } while (remainingBytes > 0);
       }
+      else
+        throw new UnableToOpenStreamException();
     }
 
     private FileInfo GetTempFile()
