@@ -66,7 +66,7 @@ namespace Vibe.Hammer.SmartBackup
           break;
         case "-filesize":
         case "-fs":
-          args.FileSize = int.Parse(parts[1]);
+          args.FileSizeInMB = int.Parse(parts[1]);
           break;
         default:
           throw new ArgumentException(parameter);

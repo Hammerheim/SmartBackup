@@ -34,16 +34,16 @@ namespace Vibe.Hammer.SmartBackup
 
         if (arguments.ShouldBackup)
         {
-          MainBackupAsync(arguments.Source, arguments.Target, arguments.FileSize).Wait();
+          MainBackupAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB).Wait();
         }
         if (arguments.ShouldMaintain)
         {
-          MainMaintenanceAsync(arguments.Target, arguments.FileSize).Wait();
+          MainMaintenanceAsync(arguments.Target, arguments.FileSizeInMB).Wait();
         }
 
         if (arguments.ShouldExtract)
         {
-          MainExtractorAsync(arguments.Source, arguments.Target, arguments.FileSize).Wait();
+          MainExtractorAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB).Wait();
         }
         Console.WriteLine("Done");
       }
@@ -118,10 +118,10 @@ namespace Vibe.Hammer.SmartBackup
     }
     private static async Task MainBackupAsync(DirectoryInfo source, DirectoryInfo target, int fileSize)
     {
-      await ShallowScan(source, target, fileSize);
+      await Backup(source, target, fileSize);
     }
 
-    private static async Task ShallowScan(DirectoryInfo source, DirectoryInfo target, int fileSize)
+    private static async Task Backup(DirectoryInfo source, DirectoryInfo target, int fileSize)
     {
       var callbackObject = new Callback();
 

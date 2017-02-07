@@ -5,7 +5,7 @@ namespace Vibe.Hammer.SmartBackup
   public class Arguments
   {
     public ProgramAction Actions { get; set; }
-    public int FileSize { get; internal set; } = 1024;
+    public int FileSizeInMB { get; internal set; } = 1024;
     public bool PrintHelp { get; internal set; }
     public DirectoryInfo Source { get; internal set; }
     public DirectoryInfo Target { get; internal set; }

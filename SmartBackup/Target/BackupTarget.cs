@@ -158,7 +158,7 @@ namespace Vibe.Hammer.SmartBackup
     public async Task Initialize(int maxLengthInMegaBytes, DirectoryInfo backupDirectory, int id, ContentCatalogue catalogue)
     {
       ID = id;
-      this.maxLength = maxLengthInMegaBytes * 1024 * 1024;
+      this.maxLength = maxLengthInMegaBytes * BackupTargetConstants.MegaByte;
       filename = Path.Combine(backupDirectory.FullName, $"BackupTarget.{id}.exe");
       if (!backupDirectory.Exists)
         backupDirectory.Create();
