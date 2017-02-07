@@ -27,6 +27,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       MaxSizeOfFiles = maxSizeInMegaBytes;
       BackupDirectory = backupDirectory.FullName;
+      Version = 1;
     }
 
     [XmlAttribute("ms")]
@@ -39,6 +40,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     [XmlArrayItem("BTI")]
     public List<TargetContentCatalogue> Targets { get; private set; }
 
+    [XmlAttribute("v")]
+    public int Version { get; set; }
     [XmlIgnore]
     public Dictionary<int, TargetContentCatalogue> SearchTargets { get; private set; }
 
