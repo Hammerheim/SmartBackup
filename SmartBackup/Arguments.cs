@@ -25,5 +25,6 @@ namespace Vibe.Hammer.SmartBackup
       get { return (Actions & ProgramAction.Extraction) == ProgramAction.Extraction; }
     }
 
+    public bool Debug { get; internal set; }
   }
 }

@@ -101,6 +101,7 @@ namespace Vibe.Hammer.SmartBackup
         var tempCatalogue = await binaryHandler.ReadContentCatalogue();
         if (tempCatalogue != null)
         {
+          maxLength = tempCatalogue.MaxSizeOfFiles * BackupTargetConstants.MegaByte;
           if (this.catalogue != null)
             catalogue.EnsureTargetCatalogueExists(tempCatalogue, ID, this);
           else
@@ -170,12 +171,13 @@ namespace Vibe.Hammer.SmartBackup
 
     private void CalculateTail()
     {
+
       if (!catalogue.SearchTargets.ContainsKey(ID))
       {
         tail = BackupTargetConstants.DataOffset;
         return;
       }
-      long calculatedTail = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().Max(item => item.TargetOffset + item.TargetLength);
+      long calculatedTail = catalogue.SearchTargets[ID].Content.OfType<ContentCatalogueBinaryEntry>().Max(item => item.TargetOffset + item.TargetLength);
       tail = Math.Max(calculatedTail, BackupTargetConstants.DataOffset);
     }
 

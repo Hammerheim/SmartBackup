@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -31,6 +32,9 @@ namespace Vibe.Hammer.SmartBackup
           PrintOptions();
           return;
         }
+
+        if (arguments.Debug)
+          Debugger.Break();
 
         if (arguments.ShouldBackup)
         {

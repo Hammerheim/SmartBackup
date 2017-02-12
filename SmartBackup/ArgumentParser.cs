@@ -46,6 +46,9 @@ namespace Vibe.Hammer.SmartBackup
         case "-help":
           args.PrintHelp = true;
           break;
+        case "-debug":
+          args.Debug = true;
+          break;
         default:
           throw new ArgumentException(paramter);
       }
