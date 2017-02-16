@@ -14,40 +14,36 @@ using Vibe.Hammer.SmartBackup.Target;
 
 namespace Vibe.Hammer.SmartBackup
 {
-  public class BackupTargetBinaryHandler : IBackupTargetBinaryHandler, IDisposable
+  public class BinaryHandler : IBinaryHandler, IDisposable
   {
-    private FileInfo targetFile;
     private int megaByte = Convert.ToInt32(Math.Pow(2, 20));
-    private int contentCatalogueOffset = BackupTargetConstants.ContentCatalogueOffset;
-    private FileStream targetStream;
     private bool steamIsOpen;
-    private ICompressionHandler compressionHandler;
     private List<string> tempFilenames = new List<string>();
 
-    public bool BinaryFileExists => targetFile.Exists;
+    protected ICompressionHandler CompressionHandler { get; private set; }
+    protected FileStream targetStream { get; private set; }
 
-    public BackupTargetBinaryHandler(FileInfo targetFile, ICompressionHandler compressionHandler)
+    protected FileInfo TargetFile { get; private set; }
+
+    public bool BinaryFileExists => TargetFile.Exists;
+
+    public BinaryHandler(FileInfo targetFile, ICompressionHandler compressionHandler)
     {
-      this.targetFile = targetFile;
-      this.compressionHandler = compressionHandler;
-      if (!targetFile.Exists)
-      {
-        File.Copy(@".\SmartBackup.exe", targetFile.FullName);
-        GC.WaitForPendingFinalizers();
-      }
+      this.TargetFile = targetFile;
+      this.CompressionHandler = compressionHandler;
     }
 
-    ~BackupTargetBinaryHandler()
+    ~BinaryHandler()
     {
       Dispose(false);
     }
 
-    public Task<bool> Defragment()
+    public virtual Task<bool> Defragment()
     {
       throw new NotImplementedException();
     }
 
-    public async Task<bool> InsertFile(ContentCatalogueBinaryEntry file, FileInfo sourceFile)
+    public virtual async Task<bool> InsertFile(ContentCatalogueBinaryEntry file, FileInfo sourceFile)
     {
       if (!sourceFile.Exists)
         throw new FileNotFoundException(sourceFile.FullName);
@@ -73,7 +69,7 @@ namespace Vibe.Hammer.SmartBackup
       return false;
     }
 
-    public async Task<FileInfo> ExtractFile(ContentCatalogueBinaryEntry file)
+    public virtual async Task<FileInfo> ExtractFile(ContentCatalogueBinaryEntry file)
     {
       DeleteTempFiles();
       var tempFile = GetTempFile();
@@ -116,7 +112,7 @@ namespace Vibe.Hammer.SmartBackup
       GC.WaitForPendingFinalizers();
     }
 
-    private async Task<bool> OpenStream()
+    protected async Task<bool> OpenStream()
     {
       if (targetStream != null && steamIsOpen)
         return true;
@@ -124,7 +120,7 @@ namespace Vibe.Hammer.SmartBackup
       if (!await EnsureFileReleased())
         return false;
 
-      targetStream = File.Open(targetFile.FullName, FileMode.Open);
+      targetStream = File.Open(TargetFile.FullName, FileMode.Open);
       steamIsOpen = true;
       return true;
     }
@@ -144,9 +140,15 @@ namespace Vibe.Hammer.SmartBackup
     {
       FileStream stream = null;
 
+      if (!TargetFile.Exists)
+      {
+        TargetFile.Create().Close();
+        GC.WaitForPendingFinalizers();
+      }
+
       try
       {
-        stream = targetFile.Open(FileMode.Open, FileAccess.Read, FileShare.None);
+        stream = TargetFile.Open(FileMode.Open, FileAccess.Read, FileShare.None);
       }
       catch (IOException)
       {
@@ -161,108 +163,22 @@ namespace Vibe.Hammer.SmartBackup
       //file is not locked
       return false;
     }
-    private void CloseStream()
+    public void CloseStream()
     {
-      targetStream.Close();
-      targetStream.Dispose();
-      GC.WaitForPendingFinalizers();
+      if (targetStream != null)
+      {
+        targetStream.Close();
+        targetStream.Dispose();
+        GC.WaitForPendingFinalizers();
+      }
       steamIsOpen = false;
     }
 
-    public Task<bool> RemoveFile(ContentCatalogueBinaryEntry file)
+    public virtual Task<bool> RemoveFile(ContentCatalogueBinaryEntry file)
     {
       throw new NotImplementedException();
     }
 
-    public async Task WriteContentCatalogue(ContentCatalogue catalogue, bool closeStreams)
-    {
-      try
-      {
-        XmlSerializer xsSubmit = new XmlSerializer(typeof(ContentCatalogue));
-        byte[] resultBuffer;
-        int contentLength;
-        int xmlLength = 0;
-        using (var resultStream = new MemoryStream())
-        {
-          using (var xmlStream = new MemoryStream())
-          {
-            xsSubmit.Serialize(xmlStream, catalogue);
-            xmlStream.Position = 0;
-            xmlLength = (int)xmlStream.Length;
-            xmlStream.Position = 0;
-            if (!await compressionHandler.CompressStream(xmlStream, resultStream))
-              throw new Exception("Failed to compress");
-          }
-          resultBuffer = resultStream.ToArray();
-        }
-        contentLength = resultBuffer.Length;
-        if (await OpenStream())
-        {
-          targetStream.Seek(contentCatalogueOffset, SeekOrigin.Begin);
-          targetStream.Write(BitConverter.GetBytes(xmlLength), 0, sizeof(int));
-          targetStream.Write(resultBuffer, 0, (int)contentLength);
-        }
-        else
-          throw new UnableToOpenStreamException();
-
-        if (closeStreams)
-          CloseStream();
-      }
-      catch (Exception err)
-      {
-
-        throw;
-      }
-    }
-
-    public async Task<ContentCatalogue> ReadContentCatalogue()
-    {
-      if (await OpenStream())
-      {
-        try
-        {
-          var xmlLength = ReadContentLength();
-          byte[] decompressedBytes = new byte[xmlLength];
-          int read = 0;
-          int offset = 0;
-          using (DeflateStream decompressionStream = new DeflateStream(targetStream, CompressionMode.Decompress))
-          {
-            do
-            {
-              read = await decompressionStream.ReadAsync(decompressedBytes, offset, xmlLength - offset);
-              offset += read;
-            } while (offset < xmlLength);
-          }
-          CloseStream();
-          return await CreateContentCatalogueFromBytes(decompressedBytes, xmlLength);
-        }
-        catch (Exception err)
-        {
-          return null;
-        }
-      }
-      return null;
-    }
-
-    private int ReadContentLength()
-    {
-      targetStream.Seek(contentCatalogueOffset, SeekOrigin.Begin);
-      byte[] lengthBuffer = new byte[4];
-      targetStream.Read(lengthBuffer, 0, sizeof(int));
-      return BitConverter.ToInt32(lengthBuffer, 0);
-    }
-    private async Task<ContentCatalogue> CreateContentCatalogueFromBytes(byte[] binaryContentCatalogue, int length)
-    {
-      using (MemoryStream decompressedStream = new MemoryStream())
-      {
-        await decompressedStream.WriteAsync(binaryContentCatalogue, 0, length);
-        decompressedStream.Position = 0;
-        var xmlSerializer = new XmlSerializer(typeof(ContentCatalogue));
-        var catalogue = xmlSerializer.Deserialize(decompressedStream) as ContentCatalogue;
-        catalogue.RebuildSearchIndex();
-        return catalogue;
-      }
-    }
     public void Dispose()
     {
       Dispose(true);

@@ -60,7 +60,7 @@
     <Compile Include="Sha256Hasher.cs" />
     <Compile Include="Target\AddFileToArchiveException.cs" />
     <Compile Include="Target\BackupTarget.cs" />
-    <Compile Include="Target\BackupTargetBinaryHandler.cs" />
+    <Compile Include="Target\BinaryHandler.cs" />
     <Compile Include="Catalogue\ContentCatalogueEntry.cs" />
     <Compile Include="Target\BackupTargetConstants.cs" />
     <Compile Include="Target\BackupTargetNotInitializedException.cs" />
@@ -71,6 +71,8 @@
     <Compile Include="Catalogue\TargetContentCatalogue.cs" />
     <Compile Include="Catalogue\ContentCatalogue.cs" />
     <Compile Include="FileInfoExtensions.cs" />
+    <Compile Include="Target\ContentCatalogueBinaryHandler.cs" />
+    <Compile Include="Target\HashPair.cs" />
     <Compile Include="Target\IBackupTarget.cs" />
     <Compile Include="Target\IBackupTargetBinaryHandler.cs" />
     <Compile Include="ByteToString.cs" />

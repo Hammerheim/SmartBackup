@@ -38,7 +38,7 @@ namespace Vibe.Hammer.SmartBackup
       foreach (var file in log.Files)
       {
         currentFile++;
-        await ReportProgress(progressCallback, file);
+        ReportProgress(progressCallback, file);
         var currentVersion = catalogue.GetNewestVersion(file);
         if (currentVersion == null)
           await catalogue.InsertFile(file, 1);
@@ -57,7 +57,8 @@ namespace Vibe.Hammer.SmartBackup
           }
         }
       }
-      await catalogue.CloseTargets();
+      catalogue.WriteCatalogue();
+      catalogue.CloseTargets();
       progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
       return true;
     }
@@ -86,29 +87,29 @@ namespace Vibe.Hammer.SmartBackup
             numberOfDeletedFilesFound++;
           }
         }
-        await ReportProgress(progressCallback, $"Found {numberOfDeletedFilesFound} deleted file(s)");
+        ReportProgress(progressCallback, $"Found {numberOfDeletedFilesFound} deleted file(s)");
       }
-      await catalogue.CloseTargets();
+      catalogue.CloseTargets();
       progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
       return true;
     }
 
-    private async Task ReportProgress(IProgress<ProgressReport> progressCallback, FileInformation file)
+    private void ReportProgress(IProgress<ProgressReport> progressCallback, FileInformation file)
     {
       if (DateTime.Now - lastProgressReport > TimeSpan.FromSeconds(5))
       {
         progressCallback.Report(new ProgressReport(file.FullyQualifiedFilename, currentFile, maxNumberOfFiles));
-        await catalogue.WriteCatalogue();
+        catalogue.WriteCatalogue();
         lastProgressReport = DateTime.Now;
       }
     }
 
-    private async Task ReportProgress(IProgress<ProgressReport> progressCallback, string message)
+    private void ReportProgress(IProgress<ProgressReport> progressCallback, string message)
     {
       if (DateTime.Now - lastProgressReport > TimeSpan.FromSeconds(5))
       {
         progressCallback.Report(new ProgressReport(message, currentFile, maxNumberOfFiles));
-        await catalogue.WriteCatalogue();
+        catalogue.WriteCatalogue();
         lastProgressReport = DateTime.Now;
       }
     }
@@ -143,12 +144,18 @@ namespace Vibe.Hammer.SmartBackup
       foreach (var contentItem in allContentWithoutHashes)
       {
         var backupTarget = catalogue.GetBackupTargetFor(contentItem);
-        await backupTarget.CalculateHashes(contentItem);
+        var hashes = await backupTarget.CalculateHashes(contentItem);
+        if (hashes != null)
+        {
+          contentItem.PrimaryContentHash = hashes.PrimaryHash;
+          contentItem.SecondaryContentHash = hashes.SecondaryHash;
+          catalogue.AddContentHash(hashes.PrimaryHash, contentItem);
+        }
 
         currentFile++;
-        await ReportProgress(progressCallback, contentItem.SourceFileInfo);
+        ReportProgress(progressCallback, contentItem.SourceFileInfo);
       }
-      await catalogue.WriteCatalogue();
+      catalogue.WriteCatalogue();
       return true;
     }
 
@@ -183,10 +190,10 @@ namespace Vibe.Hammer.SmartBackup
           var link = new ContentCatalogueUnclaimedLinkEntry(entry, primaryEntry);
           catalogue.ReplaceBinaryEntryWithLink(entry, link);
 
-          await ReportProgress(progressCallback, link.SourceFileInfo);
+          ReportProgress(progressCallback, link.SourceFileInfo);
         }
       }
-      await catalogue.WriteCatalogue();
+      catalogue.WriteCatalogue();
       return true;
     }
 
@@ -219,10 +226,23 @@ namespace Vibe.Hammer.SmartBackup
       foreach (var target in catalogue.Targets)
       {
         currentFile++;
-        await target.ReclaimSpace(progressCallback);
+        var entries = catalogue.Targets[target.BackupTargetIndex].Content.OfType<ContentCatalogueBinaryEntry>().ToList();
+        if (await target.ReclaimSpace(entries, progressCallback))
+        {
+          ConvertAllUnclaimedLinksToClaimedLinks(target.BackupTargetIndex);
+        }
       }
-      await catalogue.WriteCatalogue();
+      catalogue.WriteCatalogue();
       return true;
+    }
+
+    private void ConvertAllUnclaimedLinksToClaimedLinks(int id)
+    {
+      var unclaimedLinks = catalogue.SearchTargets[id].Content.OfType<ContentCatalogueUnclaimedLinkEntry>().ToArray();
+      foreach (var unclaimedLink in unclaimedLinks)
+      {
+        catalogue.Targets[id].ReplaceContent(unclaimedLink, new ContentCatalogueLinkEntry(unclaimedLink));
+      }
     }
   }
 }

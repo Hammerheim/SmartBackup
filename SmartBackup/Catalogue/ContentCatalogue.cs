@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Vibe.Hammer.SmartBackup.Compression;
 using Vibe.Hammer.SmartBackup.Progress;
+using Vibe.Hammer.SmartBackup.Target;
 
 namespace Vibe.Hammer.SmartBackup.Catalogue
 {
@@ -15,6 +16,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
   [XmlInclude(typeof(TargetContentCatalogue))]
   public class ContentCatalogue : IContentCatalogue
   {
+    private ContentCatalogueBinaryHandler binaryHandler;
+    protected DirectoryInfo TargetDirectory { get; set; }
+
     public ContentCatalogue()
     {
       SearchTargets = new Dictionary<int, TargetContentCatalogue>();
@@ -28,6 +32,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       MaxSizeOfFiles = maxSizeInMegaBytes;
       BackupDirectory = backupDirectory.FullName;
       Version = 1;
+      TargetDirectory = backupDirectory;
+      binaryHandler = new ContentCatalogueBinaryHandler(GetContentCatalogueFilename(), new CompressionHandler());
     }
 
     [XmlAttribute("ms")]
@@ -62,6 +68,11 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     public ContentCatalogueEntry GetNewestVersion(FileInformation file)
     {
       return GetNewestVersion(file.FullyQualifiedFilename);
+    }
+
+    private FileInfo GetContentCatalogueFilename()
+    {
+      return new FileInfo(Path.Combine(TargetDirectory.FullName, "BackupTarget.ContentCatalogue.exe"));
     }
 
     private ContentCatalogueEntry GetNewestVersion(string key)
@@ -165,6 +176,20 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       if (!backupDirectory.Exists)
         return;
 
+      TargetDirectory = backupDirectory;
+      if (binaryHandler == null)
+      {
+        binaryHandler = new ContentCatalogueBinaryHandler(GetContentCatalogueFilename(), new CompressionHandler());
+      }
+      var tempCatalogue = binaryHandler.ReadContentCatalogue();
+      if (tempCatalogue != null)
+      {
+        Targets = tempCatalogue.Targets;
+        SearchTargets = tempCatalogue.SearchTargets;
+        MaxSizeOfFiles = tempCatalogue.MaxSizeOfFiles;
+        Version = tempCatalogue.Version;
+        RebuildSearchIndex();
+      }
       var files = backupDirectory.GetFiles("BackupTarget.*.exe");
       if (files.Length == 0)
         return;
@@ -176,10 +201,28 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         if (match.Success)
         {
           var number = int.Parse(match.Groups[1].Value);
-          var backupTarget = new BackupTarget(new MD5Hasher(), new Sha256Hasher(), new CompressionHandler());
-          await backupTarget.Initialize(expectedMaxSizeInMegaBytes, backupDirectory, number, this);
+          if (SearchTargets.ContainsKey(number))
+          {
+            var backupTarget = new BackupTarget(new MD5Hasher(), new Sha256Hasher(), new CompressionHandler());
+            backupTarget.Initialize(expectedMaxSizeInMegaBytes, backupDirectory, number, CalculateTail(backupTarget.TargetId));
+            SearchTargets[number].BackupTarget = backupTarget;
+          }
+          else
+          {
+            file.Delete();
+          }
         }
       }
+    }
+
+    private long CalculateTail(int targetId)
+    {
+      if (!SearchTargets.ContainsKey(targetId))
+      {
+        return BackupTargetConstants.DataOffset;
+      }
+      long calculatedTail = SearchTargets[targetId].Content.OfType<ContentCatalogueBinaryEntry>().Max(item => item.TargetOffset + item.TargetLength);
+      return Math.Max(calculatedTail, BackupTargetConstants.DataOffset);
     }
 
     public async Task InsertFile(FileInformation file, int version)
@@ -187,26 +230,23 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       var backupTarget = GetBackupTargetForFile(file);
       if (backupTarget == null)
       {
-        backupTarget = await CreateNewBackupTarget();
+        backupTarget = CreateNewBackupTarget();
       }
-      await backupTarget.AddFile(file, version);
+      var entry = await backupTarget.AddFile(file, version);
+      SearchTargets[backupTarget.TargetId].Add(entry);
     }
 
-    public async Task CloseTargets()
+    public void CloseTargets()
     {
       foreach (var target in Targets)
       {
         //Backup target er null
-        await target.BackupTarget.WriteCatalogue(true);
+        target.BackupTarget.CloseStream();
       }
     }
-    public async Task WriteCatalogue()
+    public void WriteCatalogue()
     {
-      foreach (var target in Targets)
-      {
-        //Backup target er null
-        await target.BackupTarget.WriteCatalogue(false);
-      }
+      binaryHandler.WriteContentCatalogue(this, false);
     }
 
     private async Task ExtractFile(string key, DirectoryInfo extractionRoot)
@@ -298,11 +338,11 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    private async Task<BackupTarget> CreateNewBackupTarget()
+    private BackupTarget CreateNewBackupTarget()
     {
       var target = new BackupTarget(new MD5Hasher(), new Sha256Hasher(), new CompressionHandler());
       var id = SearchTargets.Keys.Count == 0 ? 0 : SearchTargets.Keys.Max() + 1;
-      await target.Initialize(MaxSizeOfFiles, new DirectoryInfo(BackupDirectory), id, this);
+      target.Initialize(MaxSizeOfFiles, new DirectoryInfo(BackupDirectory), id, 0);
       Add(new TargetContentCatalogue(id, target));
       return target;
     }
@@ -319,7 +359,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     private BackupTarget GetBackupTargetContainingFile(FileInformation file)
     {
-      return Targets.FirstOrDefault(t => t.BackupTarget.Contains(file.FullyQualifiedFilename)).BackupTarget;
+      return Targets.FirstOrDefault(t => t.KeySearchContent.ContainsKey(file.FullyQualifiedFilename)).BackupTarget;
     }
 
     private List<string> GetUniqueFileKeys()
@@ -387,9 +427,13 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       foreach (var target in Targets)
       {
-        if (target.BackupTarget.Contains(entry.Key, entry.Version))
-          return target.BackupTarget;
+        if (target.KeySearchContent.ContainsKey(entry.Key))
+        {
+          if (target.KeySearchContent[entry.Key].FirstOrDefault(e => e.Key == entry.Key && e.Version == entry.Version) != null)
+            return target.BackupTarget;
+        }
       }
+
       return null;
     }
 

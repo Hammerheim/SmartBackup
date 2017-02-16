@@ -10,15 +10,14 @@ using Vibe.Hammer.SmartBackup.Target;
 
 namespace Vibe.Hammer.SmartBackup
 {
-  public interface IBackupTargetBinaryHandler
+  public interface IBinaryHandler
   {
     Task<bool> InsertFile(ContentCatalogueBinaryEntry file, FileInfo sourceFile);
     Task<bool> RemoveFile(ContentCatalogueBinaryEntry file);
     Task<bool> Defragment();
-    Task WriteContentCatalogue(ContentCatalogue catalogue, bool closeStreams);
-    Task<ContentCatalogue> ReadContentCatalogue();
     bool BinaryFileExists { get; }
     Task<FileInfo> ExtractFile(ContentCatalogueBinaryEntry file);
     Task MoveBytes(long moveFromOffset, long numberOfBytesToMove, long newOffset);
+    void CloseStream();
   }
 }

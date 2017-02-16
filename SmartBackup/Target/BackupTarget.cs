@@ -16,8 +16,7 @@ namespace Vibe.Hammer.SmartBackup
 {
   public class BackupTarget : IBackupTarget
   {
-    private ContentCatalogue catalogue;
-    private IBackupTargetBinaryHandler binaryHandler;
+    private IBinaryHandler binaryHandler;
     private long maxLength;
     private long tail = BackupTargetConstants.DataOffset;
     private string filename;
@@ -44,13 +43,13 @@ namespace Vibe.Hammer.SmartBackup
 
     public int TargetId { get; set; }
 
-    public async Task AddFile(FileInformation file, int version)
+    public async Task<ContentCatalogueBinaryEntry> AddFile(FileInformation file, int version)
     {
       EnsureInitialized();
-      await InsertFile(file, version);
+      return await InsertFile(file, version);
     }
 
-    private async Task InsertFile(FileInformation file, int version)
+    private async Task<ContentCatalogueBinaryEntry> InsertFile(FileInformation file, int version)
     {
       var item = new ContentCatalogueBinaryEntry
       {
@@ -80,6 +79,7 @@ namespace Vibe.Hammer.SmartBackup
         item.TargetLength = GetFileSize(sourceFile);
         await InsertBinary(item, sourceFile);
       }
+      return item;
     }
 
     private async Task InsertBinary(ContentCatalogueBinaryEntry item, FileInfo sourceFile)
@@ -88,32 +88,6 @@ namespace Vibe.Hammer.SmartBackup
       if (success)
       {
         tail = item.TargetOffset + item.TargetLength;
-        // update log
-        catalogue.SearchTargets[ID].Add(item);
-      }
-    }
-
-    private async Task EnsureContentCatalogue(ContentCatalogue catalogue)
-    {
-      this.catalogue = catalogue;
-      if (binaryHandler.BinaryFileExists)
-      {
-        var tempCatalogue = await binaryHandler.ReadContentCatalogue();
-        if (tempCatalogue != null)
-        {
-          maxLength = tempCatalogue.MaxSizeOfFiles * BackupTargetConstants.MegaByte;
-          if (this.catalogue != null)
-            catalogue.EnsureTargetCatalogueExists(tempCatalogue, ID, this);
-          else
-            catalogue = tempCatalogue;
-        }
-        else
-          throw new InvalidBinaryTargetException(ID);
-      }
-      else
-      {
-        catalogue = new ContentCatalogue();
-        catalogue.Add(new TargetContentCatalogue(ID, this));
       }
     }
 
@@ -128,57 +102,16 @@ namespace Vibe.Hammer.SmartBackup
       return (tail + file.Size < maxLength);
     }
 
-    public bool Contains(string key)
-    {
-      EnsureInitialized();
-      return (catalogue.Targets[ID].KeySearchContent.ContainsKey(key));
-    }
-
-    public bool Contains(string key, int version)
-    {
-      EnsureInitialized();
-      if (catalogue.Targets[ID].KeySearchContent.ContainsKey(key))
-      {
-        return catalogue.Targets[ID].KeySearchContent[key].FirstOrDefault(entry => entry.Key == key && entry.Version == version) != null;
-      }
-      return false;
-    }
-
-    public async Task ReadCatalogue()
-    {
-      EnsureInitialized();
-      throw new NotImplementedException();
-    }
-
-    public async Task WriteCatalogue(bool closeStreams)
-    {
-      EnsureInitialized();
-      await binaryHandler.WriteContentCatalogue(catalogue, closeStreams);
-    }
-
-    public async Task Initialize(int maxLengthInMegaBytes, DirectoryInfo backupDirectory, int id, ContentCatalogue catalogue)
+    public virtual void Initialize(int maxLengthInMegaBytes, DirectoryInfo backupDirectory, int id, long tail)
     {
       ID = id;
       this.maxLength = maxLengthInMegaBytes * BackupTargetConstants.MegaByte;
       filename = Path.Combine(backupDirectory.FullName, $"BackupTarget.{id}.exe");
       if (!backupDirectory.Exists)
         backupDirectory.Create();
-      binaryHandler = new BackupTargetBinaryHandler(new FileInfo(filename), compressionHandler);
-      await EnsureContentCatalogue(catalogue);
-      CalculateTail();
+      binaryHandler = new BinaryHandler(new FileInfo(filename), compressionHandler);
+      this.tail = tail;
       Initialized = true;
-    }
-
-    private void CalculateTail()
-    {
-
-      if (!catalogue.SearchTargets.ContainsKey(ID))
-      {
-        tail = BackupTargetConstants.DataOffset;
-        return;
-      }
-      long calculatedTail = catalogue.SearchTargets[ID].Content.OfType<ContentCatalogueBinaryEntry>().Max(item => item.TargetOffset + item.TargetLength);
-      tail = Math.Max(calculatedTail, BackupTargetConstants.DataOffset);
     }
 
     private void EnsureInitialized()
@@ -236,27 +169,31 @@ namespace Vibe.Hammer.SmartBackup
         GC.WaitForPendingFinalizers();
       }
     }
-    public async Task CalculateHashes(ContentCatalogueBinaryEntry entry)
+    public async Task<HashPair> CalculateHashes(ContentCatalogueBinaryEntry entry)
     {
       var tempFile = await binaryHandler.ExtractFile(entry);
+      
       if (tempFile.Exists)
       {
         try
         {
-          entry.PrimaryContentHash = await primaryHasher.GetHashString(tempFile);
-          entry.SecondaryContentHash = await primaryHasher.GetHashString(tempFile);
-          catalogue.AddContentHash(entry.PrimaryContentHash, entry);
+          return new HashPair
+          {
+            PrimaryHash = await primaryHasher.GetHashString(tempFile),
+            SecondaryHash = await secondaryHasher.GetHashString(tempFile)
+          };
         }
         finally
         {
           tempFile.Delete();
         }
       }
+      return null;
     }
 
-    public async Task ReclaimSpace(IProgress<ProgressReport> progressCallback)
+    public async Task<bool> ReclaimSpace(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback)
     {
-      var entries = catalogue.Targets[ID].Content.OfType<ContentCatalogueBinaryEntry>().OrderBy(x => x.TargetOffset).ToArray();
+      var entries = binariesToMove.OrderBy(x => x.TargetOffset).ToArray();
 
       long currentOffset = BackupTargetConstants.DataOffset;
       var time = DateTime.Now;
@@ -267,8 +204,8 @@ namespace Vibe.Hammer.SmartBackup
         {
           await binaryHandler.MoveBytes(entry.TargetOffset, entry.TargetLength, currentOffset);
           entry.TargetOffset = currentOffset;
-          currentOffset += entry.TargetLength;
         }
+        currentOffset += entry.TargetLength;
 
         if (DateTime.Now - time > TimeSpan.FromSeconds(5))
         {
@@ -281,17 +218,7 @@ namespace Vibe.Hammer.SmartBackup
       else
         progressCallback.Report(new ProgressReport("No space was reclaimed"));
       tail = currentOffset;
-
-      ConvertAllUnclaimedLinksToClaimedLinks();
-    }
-
-    private void ConvertAllUnclaimedLinksToClaimedLinks()
-    {
-      var unclaimedLinks = catalogue.Targets[ID].Content.OfType<ContentCatalogueUnclaimedLinkEntry>().ToArray();
-      foreach (var unclaimedLink in unclaimedLinks)
-      {
-        catalogue.Targets[ID].ReplaceContent(unclaimedLink, new ContentCatalogueLinkEntry(unclaimedLink));
-      }
+      return true;
     }
 
     private long RecalculateOffsets(ContentCatalogueBinaryEntry[] binaryEntries)
@@ -304,6 +231,11 @@ namespace Vibe.Hammer.SmartBackup
       }
 
       return temporaryTail;
+    }
+
+    public void CloseStream()
+    {
+      binaryHandler.CloseStream();
     }
   }
 }

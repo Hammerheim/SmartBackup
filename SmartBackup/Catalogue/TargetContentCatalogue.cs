@@ -79,9 +79,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       Add(replaceWithThis);
     }
 
-    internal async Task ReclaimSpace(IProgress<ProgressReport> progressCallback)
+    internal async Task<bool> ReclaimSpace(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback)
     {
-      await BackupTarget.ReclaimSpace(progressCallback);
+      return await BackupTarget.ReclaimSpace(binariesToMove, progressCallback);
     }
   }
 }
