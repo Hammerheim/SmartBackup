@@ -136,7 +136,7 @@ namespace Vibe.Hammer.SmartBackup
       return tries < 10;
     }
 
-    private bool IsTargetLocked()
+    protected bool IsTargetLocked()
     {
       FileStream stream = null;
 

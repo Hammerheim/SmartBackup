@@ -41,7 +41,7 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    public int TargetId { get; set; }
+    public int TargetId => ID;
 
     public async Task<ContentCatalogueBinaryEntry> AddFile(FileInformation file, int version)
     {
@@ -122,10 +122,14 @@ namespace Vibe.Hammer.SmartBackup
 
     public async Task ExtractFile(ContentCatalogueBinaryEntry file, DirectoryInfo extractionRoot)
     {
+      var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, file.SourceFileInfo.RelativePath, file.SourceFileInfo.FileName));
+      if (targetFile.Exists && targetFile.LastWriteTime >= file.SourceFileInfo.LastModified)
+        return;
+
       var tempFile = await binaryHandler.ExtractFile(file);
       if (tempFile != null)
       {
-        var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, file.SourceFileInfo.RelativePath, file.SourceFileInfo.FileName));
+        
         targetFile.Directory.Create();
         if (file.Compressed)
         {
@@ -139,7 +143,31 @@ namespace Vibe.Hammer.SmartBackup
           }
         }
         else
-          tempFile.MoveTo(targetFile.FullName);
+        {
+          if (targetFile.Exists)
+          {
+            if (targetFile.LastWriteTime < file.SourceFileInfo.LastModified)
+            {
+              var lastWriteTime = targetFile.LastWriteTime;
+              var movedFile = new FileInfo(targetFile.FullName + ".tmp");
+              targetFile.MoveTo(movedFile.FullName);
+              try
+              {
+                GC.WaitForPendingFinalizers();
+                tempFile.MoveTo(targetFile.FullName);
+              }
+              catch 
+              {
+                movedFile.MoveTo(targetFile.FullName);
+                File.SetLastWriteTime(targetFile.FullName, lastWriteTime);
+                return;
+              }
+            }
+          }
+          else
+            tempFile.MoveTo(targetFile.FullName);
+
+        }
         File.SetLastWriteTime(targetFile.FullName, file.SourceFileInfo.LastModified);
         GC.WaitForPendingFinalizers();
       }

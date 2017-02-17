@@ -13,7 +13,7 @@ namespace Vibe.Hammer.SmartBackup
   public interface IBackupTarget
   {
     void Initialize(int maxLengthInMegaBytes, DirectoryInfo backupDirectory, int id, long tail);
-    int TargetId { get; set; }
+    int TargetId { get; }
     long Tail { get; }
     bool CanContain(FileInformation file);
     Task<ContentCatalogueBinaryEntry> AddFile(FileInformation file, int version);

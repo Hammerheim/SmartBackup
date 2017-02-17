@@ -240,9 +240,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       foreach (var target in Targets)
       {
-        //Backup target er null
         target.BackupTarget.CloseStream();
       }
+      binaryHandler.CloseStream();
     }
     public void WriteCatalogue()
     {

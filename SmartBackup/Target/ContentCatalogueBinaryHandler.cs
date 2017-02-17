@@ -24,12 +24,18 @@ namespace Vibe.Hammer.SmartBackup.Target
     {
       //try
       //{
+      if (!IsTargetLocked())
+      {
         var serializer = new XmlSerializer(typeof(ContentCatalogue));
         using (var writer = new StreamWriter(TargetFile.FullName))
         {
           serializer.Serialize(writer, catalogue);
           writer.Close();
         }
+      }
+      else
+        throw new UnableToOpenStreamException();
+      GC.WaitForPendingFinalizers();
 
       //      byte[] resultBuffer;
       //  int contentLength;
@@ -72,11 +78,21 @@ namespace Vibe.Hammer.SmartBackup.Target
       if (!TargetFile.Exists)
         return null;
 
-      XmlSerializer serializer = new XmlSerializer(typeof(ContentCatalogue));
-      using (var fs = new FileStream(TargetFile.FullName, FileMode.Open))
+      ContentCatalogue catalogue = null;
+
+      if (!IsTargetLocked())
       {
-        return serializer.Deserialize(fs) as ContentCatalogue;
+        XmlSerializer serializer = new XmlSerializer(typeof(ContentCatalogue));
+        using (var fs = new FileStream(TargetFile.FullName, FileMode.Open))
+        {
+          catalogue = serializer.Deserialize(fs) as ContentCatalogue;
+        }
       }
+      else
+        throw new UnableToOpenStreamException();
+
+      GC.WaitForPendingFinalizers();
+      return catalogue;
 
       //  if (await OpenStream())
       //  {

@@ -57,6 +57,12 @@ namespace Vibe.Hammer.SmartBackup
         PrintOptions();
         return;
       }
+
+      if (Debugger.IsAttached)
+      {
+        Console.WriteLine("Press any key to close...");
+        Console.ReadKey();
+      }
     }
 
     private static void PrintOptions()
