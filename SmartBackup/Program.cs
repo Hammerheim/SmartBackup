@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Vibe.Hammer.SmartBackup;
 using Vibe.Hammer.SmartBackup.Catalogue;
 using Vibe.Hammer.SmartBackup.Progress;
+using Vibe.Hammer.SmartBackup.Target;
 
 namespace Vibe.Hammer.SmartBackup
 {
@@ -36,18 +37,24 @@ namespace Vibe.Hammer.SmartBackup
         if (arguments.Debug)
           Debugger.Break();
 
+        if (string.IsNullOrWhiteSpace(arguments.FilenamePattern))
+        {
+          Console.WriteLine($"Using default name of catalogue: {BackupTargetConstants.DefaultBackupTargetName}");
+          arguments.FilenamePattern = BackupTargetConstants.DefaultBackupTargetName;
+        }
+
         if (arguments.ShouldBackup)
         {
-          MainBackupAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB).Wait();
+          MainBackupAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB, arguments.FilenamePattern).Wait();
         }
         if (arguments.ShouldMaintain)
         {
-          MainMaintenanceAsync(arguments.Target, arguments.FileSizeInMB).Wait();
+          MainMaintenanceAsync(arguments.Target, arguments.FileSizeInMB, arguments.FilenamePattern).Wait();
         }
 
         if (arguments.ShouldExtract)
         {
-          MainExtractorAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB).Wait();
+          MainExtractorAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB, arguments.FilenamePattern).Wait();
         }
         Console.WriteLine("Done");
       }
@@ -92,7 +99,7 @@ namespace Vibe.Hammer.SmartBackup
       Console.WriteLine(@"Use: -backup -source:path -target:path");
     }
 
-    private static async Task MainExtractorAsync(DirectoryInfo source, DirectoryInfo target, int fileSize)
+    private static async Task MainExtractorAsync(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern)
     {
       if (source.FullName == string.Empty)
       {
@@ -101,22 +108,22 @@ namespace Vibe.Hammer.SmartBackup
       }
       var catalogue = new ContentCatalogue();
       
-      await catalogue.BuildFromExistingBackups(source, fileSize);
+      await catalogue.BuildFromExistingBackups(source, fileSize, filenamePattern);
 
       Console.WriteLine($"Extracting files from {source} to {target.FullName}");
       var callbackObject = new Callback();
       await catalogue.ExtractAll(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
     }
 
-    private static async Task MainMaintenanceAsync(DirectoryInfo target, int fileSize)
+    private static async Task MainMaintenanceAsync(DirectoryInfo target, int fileSize, string filenamePattern)
     {
       var callbackObject = new Callback();
 
       Console.WriteLine("Starting maintenance run...");
       var runner = new Runner(target);
-      await runner.CalculateMissingHashes(target, fileSize, new Progress<ProgressReport>(callbackObject.ProgressCallback));
-      await runner.ReplaceDublicatesWithLinks(target, fileSize, new Progress<ProgressReport>(callbackObject.ProgressCallback));
-      await runner.DefragmentBinaries(target, fileSize, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      await runner.CalculateMissingHashes(target, fileSize, filenamePattern, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      await runner.ReplaceDublicatesWithLinks(target, fileSize, filenamePattern, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      await runner.DefragmentBinaries(target, fileSize, filenamePattern, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       Console.WriteLine("Done");
     }
     private static string ConvertUriStylePathToNative(string path)
@@ -126,12 +133,12 @@ namespace Vibe.Hammer.SmartBackup
       path = path.Replace('/', '\\');
       return path;
     }
-    private static async Task MainBackupAsync(DirectoryInfo source, DirectoryInfo target, int fileSize)
+    private static async Task MainBackupAsync(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern)
     {
-      await Backup(source, target, fileSize);
+      await Backup(source, target, fileSize, filenamePattern);
     }
 
-    private static async Task Backup(DirectoryInfo source, DirectoryInfo target, int fileSize)
+    private static async Task Backup(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern)
     {
       var callbackObject = new Callback();
 
@@ -141,8 +148,8 @@ namespace Vibe.Hammer.SmartBackup
       var result = await runner.Scan(source, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       if (result != null)
       {
-        await runner.Backup(result, target, fileSize, new Progress<ProgressReport>(callbackObject.ProgressCallback));
-        await runner.IdentifyDeletedFiles(target, fileSize, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+        await runner.Backup(result, target, fileSize, filenamePattern, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+        await runner.IdentifyDeletedFiles(target, fileSize, filenamePattern, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       }
 
       Console.WriteLine("Done");

@@ -12,7 +12,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
   {
     ContentCatalogueEntry GetNewestVersion(FileInformation file);
     void Add(TargetContentCatalogue catalogue);
-    Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes);
+    Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern);
 
     Task ExtractAll(DirectoryInfo extractionRoot, IProgress<ProgressReport> progressCallback);
     IEnumerable<ContentCatalogueBinaryEntry> GetAllContentEntriesWithoutHashes(IProgress<ProgressReport> progressCallback);

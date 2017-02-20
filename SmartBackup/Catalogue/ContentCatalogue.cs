@@ -26,13 +26,14 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       ContentHashes = new Dictionary<string, List<ContentCatalogueBinaryEntry>>();
     }
 
-    public ContentCatalogue(int maxSizeInMegaBytes, DirectoryInfo backupDirectory)
+    public ContentCatalogue(int maxSizeInMegaBytes, DirectoryInfo backupDirectory, string filenamePattern)
       : this()
     {
       MaxSizeOfFiles = maxSizeInMegaBytes;
       BackupDirectory = backupDirectory.FullName;
       Version = 1;
       TargetDirectory = backupDirectory;
+      FilenamePattern = filenamePattern;
       binaryHandler = new ContentCatalogueBinaryHandler(GetContentCatalogueFilename(), new CompressionHandler());
     }
 
@@ -48,6 +49,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     [XmlAttribute("v")]
     public int Version { get; set; }
+    [XmlAttribute("fp")]
+    public string FilenamePattern { get; set; }
+
     [XmlIgnore]
     public Dictionary<int, TargetContentCatalogue> SearchTargets { get; private set; }
 
@@ -72,7 +76,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     private FileInfo GetContentCatalogueFilename()
     {
-      return new FileInfo(Path.Combine(TargetDirectory.FullName, "BackupTarget.ContentCatalogue.exe"));
+      return new FileInfo(Path.Combine(TargetDirectory.FullName, $"{FilenamePattern}.ContentCatalogue.exe"));
     }
 
     private ContentCatalogueEntry GetNewestVersion(string key)
@@ -168,10 +172,11 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    public async Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes)
+    public async Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern)
     {
       this.BackupDirectory = backupDirectory.FullName;
       this.MaxSizeOfFiles = expectedMaxSizeInMegaBytes;
+      this.FilenamePattern = filenamePattern;
 
       if (!backupDirectory.Exists)
         return;
@@ -190,11 +195,11 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         Version = tempCatalogue.Version;
         RebuildSearchIndex();
       }
-      var files = backupDirectory.GetFiles("BackupTarget.*.exe");
+      var files = backupDirectory.GetFiles($"{filenamePattern}.*.exe");
       if (files.Length == 0)
         return;
 
-      var regEx = new Regex(@"^BackupTarget\.(\d+)\.exe$");
+      var regEx = new Regex($"^{filenamePattern}\\.(\\d+)\\.exe$");
       foreach (var file in files)
       {
         var match = regEx.Match(file.Name);
@@ -204,7 +209,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
           if (SearchTargets.ContainsKey(number))
           {
             var backupTarget = new BackupTarget(new MD5Hasher(), new Sha256Hasher(), new CompressionHandler());
-            backupTarget.Initialize(expectedMaxSizeInMegaBytes, backupDirectory, number, CalculateTail(number));
+            backupTarget.Initialize(expectedMaxSizeInMegaBytes, backupDirectory, number, CalculateTail(number), filenamePattern);
             SearchTargets[number].BackupTarget = backupTarget;
           }
           else
@@ -342,7 +347,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       var target = new BackupTarget(new MD5Hasher(), new Sha256Hasher(), new CompressionHandler());
       var id = SearchTargets.Keys.Count == 0 ? 0 : SearchTargets.Keys.Max() + 1;
-      target.Initialize(MaxSizeOfFiles, new DirectoryInfo(BackupDirectory), id, 0);
+      target.Initialize(MaxSizeOfFiles, new DirectoryInfo(BackupDirectory), id, 0, FilenamePattern);
       Add(new TargetContentCatalogue(id, target));
       return target;
     }

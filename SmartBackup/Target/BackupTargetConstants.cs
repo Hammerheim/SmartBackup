@@ -11,5 +11,7 @@ namespace Vibe.Hammer.SmartBackup.Target
     public static int DataOffset => 0;
     public static int BufferSize => 1000000;
     public static long MegaByte => (long)Math.Pow(2, 20);
+    public static string DefaultBackupTargetName => "MyCatalogue";
+
   }
 }

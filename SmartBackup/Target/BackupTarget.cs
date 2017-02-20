@@ -102,11 +102,14 @@ namespace Vibe.Hammer.SmartBackup
       return (tail + file.Size < maxLength);
     }
 
-    public virtual void Initialize(int maxLengthInMegaBytes, DirectoryInfo backupDirectory, int id, long tail)
+    public virtual void Initialize(int maxLengthInMegaBytes, DirectoryInfo backupDirectory, int id, long tail, string filenamePattern)
     {
+      if (string.IsNullOrWhiteSpace(filenamePattern))
+        filenamePattern = BackupTargetConstants.DefaultBackupTargetName;
+
       ID = id;
       this.maxLength = maxLengthInMegaBytes * BackupTargetConstants.MegaByte;
-      filename = Path.Combine(backupDirectory.FullName, $"BackupTarget.{id}.exe");
+      filename = Path.Combine(backupDirectory.FullName, $"{filenamePattern}.{id}.exe");
       if (!backupDirectory.Exists)
         backupDirectory.Create();
       binaryHandler = new BinaryHandler(new FileInfo(filename), compressionHandler);
