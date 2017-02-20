@@ -150,17 +150,24 @@ namespace Vibe.Hammer.SmartBackup
             {
               var lastWriteTime = targetFile.LastWriteTime;
               var movedFile = new FileInfo(targetFile.FullName + ".tmp");
-              targetFile.MoveTo(movedFile.FullName);
+              File.Move(targetFile.FullName, movedFile.FullName);
+              //targetFile.MoveTo(movedFile.FullName);
               try
               {
                 GC.WaitForPendingFinalizers();
-                tempFile.MoveTo(targetFile.FullName);
+                File.Move(tempFile.FullName, targetFile.FullName);
+                
+                //tempFile.MoveTo(targetFile.FullName);
               }
               catch 
               {
                 movedFile.MoveTo(targetFile.FullName);
                 File.SetLastWriteTime(targetFile.FullName, lastWriteTime);
                 return;
+              }
+              finally
+              {
+                File.Delete(movedFile.FullName);
               }
             }
           }
@@ -219,7 +226,21 @@ namespace Vibe.Hammer.SmartBackup
       return null;
     }
 
-    public async Task<bool> ReclaimSpace(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback)
+    public async Task<bool> ReclaimSpace(IProgress<ProgressReport> progressCallback)
+    {
+      if (await binaryHandler.CreateNewFile(0, tail))
+      {
+        progressCallback.Report(new ProgressReport($"Reclaimed available space in backup target {ID}"));
+        return true;
+      }
+      else
+      {
+        progressCallback.Report(new ProgressReport($"No space reclaimed in backup target {ID}"));
+        return false;
+      }
+    }
+
+    public async Task<bool> Defragment(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback)
     {
       var entries = binariesToMove.OrderBy(x => x.TargetOffset).ToArray();
 
@@ -241,8 +262,12 @@ namespace Vibe.Hammer.SmartBackup
           time = DateTime.Now;
         }
       }
+
       if (tail > currentOffset)
-        progressCallback.Report(new ProgressReport($"Reclaimed {(tail / (1024 * 1024)) - (currentOffset / (1024 * 1024))} MB"));
+      {
+          progressCallback.Report(new ProgressReport($"Defragmentation left {(tail / (1024 * 1024)) - (currentOffset / (1024 * 1024))} MB available in the file"));
+
+      }
       else
         progressCallback.Report(new ProgressReport("No space was reclaimed"));
       tail = currentOffset;

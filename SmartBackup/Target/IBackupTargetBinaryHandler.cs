@@ -19,5 +19,6 @@ namespace Vibe.Hammer.SmartBackup
     Task<FileInfo> ExtractFile(ContentCatalogueBinaryEntry file);
     Task MoveBytes(long moveFromOffset, long numberOfBytesToMove, long newOffset);
     void CloseStream();
+    Task<bool> CreateNewFile(long offset, long length);
   }
 }

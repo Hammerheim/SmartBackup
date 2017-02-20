@@ -252,5 +252,53 @@ namespace Vibe.Hammer.SmartBackup
         }
       }
     }
+
+    public async Task<bool> CreateNewFile(long offset, long length)
+    {
+      var tempFile = new FileInfo(TargetFile.FullName + ".tmp");
+      using (var outputStream = tempFile.Create())
+      {
+        if (await OpenStream())
+        {
+          targetStream.Seek(offset, SeekOrigin.Begin);
+          var buffer = new byte[BackupTargetConstants.BufferSize];
+          var bytesToGo = length;
+          do
+          {
+            var read = await targetStream.ReadAsync(buffer, 0, (int)Math.Min(BackupTargetConstants.BufferSize, bytesToGo));
+            if (read > 0)
+              await outputStream.WriteAsync(buffer, 0, read);
+            bytesToGo -= read;
+          } while (bytesToGo > 0);
+        }
+      }
+      CloseStream();
+      GC.WaitForPendingFinalizers();
+      if (!IsTargetLocked())
+      {
+        OverwriteExisting(TargetFile, tempFile);
+      }
+      return true;
+    }
+
+    public void OverwriteExisting(FileInfo existing, FileInfo newFile)
+    {
+      var movedFilename = existing.FullName + ".bak";
+      var existingFilename = existing.FullName;
+      var newFilename = newFile.FullName;
+
+      File.Move(existingFilename, movedFilename);
+      try
+      {
+        GC.WaitForPendingFinalizers();
+        File.Move(newFilename, existingFilename);
+        File.Delete(movedFilename);
+      }
+      catch
+      {
+        File.Move(movedFilename, existingFilename);
+        return;
+      }
+    }
   }
 }

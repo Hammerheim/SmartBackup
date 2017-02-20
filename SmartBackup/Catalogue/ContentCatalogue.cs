@@ -204,7 +204,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
           if (SearchTargets.ContainsKey(number))
           {
             var backupTarget = new BackupTarget(new MD5Hasher(), new Sha256Hasher(), new CompressionHandler());
-            backupTarget.Initialize(expectedMaxSizeInMegaBytes, backupDirectory, number, CalculateTail(backupTarget.TargetId));
+            backupTarget.Initialize(expectedMaxSizeInMegaBytes, backupDirectory, number, CalculateTail(number));
             SearchTargets[number].BackupTarget = backupTarget;
           }
           else

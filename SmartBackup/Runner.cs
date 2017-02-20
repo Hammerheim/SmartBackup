@@ -59,6 +59,7 @@ namespace Vibe.Hammer.SmartBackup
       }
       catalogue.WriteCatalogue();
       catalogue.CloseTargets();
+      await Task.Delay(500);
       progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
       return true;
     }
@@ -91,6 +92,7 @@ namespace Vibe.Hammer.SmartBackup
       }
       catalogue.CloseTargets();
       progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
+      await Task.Delay(500);
       return true;
     }
 
@@ -156,6 +158,8 @@ namespace Vibe.Hammer.SmartBackup
         ReportProgress(progressCallback, contentItem.SourceFileInfo);
       }
       catalogue.WriteCatalogue();
+      catalogue.CloseTargets();
+      await Task.Delay(500);
       return true;
     }
 
@@ -194,6 +198,8 @@ namespace Vibe.Hammer.SmartBackup
         }
       }
       catalogue.WriteCatalogue();
+      catalogue.CloseTargets();
+      await Task.Delay(500);
       return true;
     }
 
@@ -215,7 +221,10 @@ namespace Vibe.Hammer.SmartBackup
       var allUnclaimedLinks = catalogue.GetUnclaimedLinks();
       if (!allUnclaimedLinks.Any())
       {
-        progressCallback.Report(new ProgressReport("There are no space that must be reclaimed."));
+        foreach (var target in catalogue.Targets)
+          await target.ReclaimSpace(progressCallback);
+
+        //progressCallback.Report(new ProgressReport("There are no space that must be reclaimed."));
         return true;
       }
       maxNumberOfFiles = allUnclaimedLinks.Count();
@@ -227,9 +236,10 @@ namespace Vibe.Hammer.SmartBackup
       {
         currentFile++;
         var entries = catalogue.Targets[target.BackupTargetIndex].Content.OfType<ContentCatalogueBinaryEntry>().ToList();
-        if (await target.ReclaimSpace(entries, progressCallback))
+        if (await target.Defragment(entries, progressCallback))
         {
           ConvertAllUnclaimedLinksToClaimedLinks(target.BackupTargetIndex);
+          await target.ReclaimSpace(progressCallback);
         }
       }
       catalogue.WriteCatalogue();
@@ -243,6 +253,11 @@ namespace Vibe.Hammer.SmartBackup
       {
         catalogue.Targets[id].ReplaceContent(unclaimedLink, new ContentCatalogueLinkEntry(unclaimedLink));
       }
+    }
+
+    private async Task ReclaimPhysicalSpace(TargetContentCatalogue catalogue, IProgress<ProgressReport> progressCallback)
+    {
+      await catalogue.BackupTarget.Defragment(new List<ContentCatalogueBinaryEntry>(), progressCallback);
     }
   }
 }
