@@ -24,6 +24,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       SearchTargets = new Dictionary<int, TargetContentCatalogue>();
       Targets = new List<TargetContentCatalogue>();
       ContentHashes = new Dictionary<string, List<ContentCatalogueBinaryEntry>>();
+      ContentLengths = new Dictionary<long, List<ContentCatalogueBinaryEntry>>();
     }
 
     public ContentCatalogue(int maxSizeInMegaBytes, DirectoryInfo backupDirectory, string filenamePattern)
@@ -57,6 +58,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     [XmlIgnore]
     public Dictionary<string, List<ContentCatalogueBinaryEntry>> ContentHashes { get; private set; }
+    [XmlIgnore]
+    public Dictionary<long, List<ContentCatalogueBinaryEntry>> ContentLengths { get; private set; }
 
     public void RebuildSearchIndex()
     {
@@ -66,6 +69,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         item.RebuildSearchIndex();
       }
 
+      BuildContentLengthsDictionary();
       BuildContentHashesDictionary();
     }
 
@@ -460,7 +464,23 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
           }
         }
       }
+    }
 
+    private void BuildContentLengthsDictionary()
+    {
+      ContentLengths.Clear();
+      foreach (var target in Targets)
+      {
+        foreach (var entry in target.Content.OfType<ContentCatalogueBinaryEntry>())
+        {
+          if (ContentLengths.ContainsKey(entry.TargetLength))
+            ContentLengths[entry.TargetLength].Add(entry);
+          else
+          {
+            ContentLengths.Add(entry.TargetLength, new List<ContentCatalogueBinaryEntry> { entry });
+          }
+        }
+      }
     }
 
     public IEnumerable<ContentCatalogueEntry> EnumerateContent()

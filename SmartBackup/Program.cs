@@ -160,7 +160,7 @@ namespace Vibe.Hammer.SmartBackup
       public void ProgressCallback(ProgressReport progress)
       {
         if (progress.ExpectedNumberOfActions > 0)
-          Console.WriteLine($"{Math.Round(progress.CurrentActionNumber / (double)progress.ExpectedNumberOfActions * 100)}% {progress.AdditionalInfo}");
+          Console.WriteLine($"{Math.Round(progress.CurrentActionNumber / (double)progress.ExpectedNumberOfActions * 100, 2)}% {progress.AdditionalInfo}");
         else
           Console.WriteLine(progress.AdditionalInfo);
       }

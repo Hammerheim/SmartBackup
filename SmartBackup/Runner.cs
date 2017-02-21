@@ -133,30 +133,68 @@ namespace Vibe.Hammer.SmartBackup
       await InitializeContentCatalogue(targetRoot, fileSize, filenamePattern, progressCallback);
 
       currentFile = 0;
-      var allContentWithoutHashes = catalogue.GetAllContentEntriesWithoutHashes(progressCallback);
-      if (!allContentWithoutHashes.Any())
-      {
-        progressCallback.Report(new ProgressReport("All files are already hashed."));
-        return true;
-      }
-      maxNumberOfFiles = allContentWithoutHashes.Count();
       lastProgressReport = DateTime.Now;
-
+      maxNumberOfFiles = catalogue.ContentLengths.Count();
       progressCallback.Report(new ProgressReport("Scanning for missing file hashes..."));
-      foreach (var contentItem in allContentWithoutHashes)
+      long primaryHashCount = 0;
+      long secondaryHashCount = 0;
+      foreach (var key in catalogue.ContentLengths.Keys)
       {
-        var backupTarget = catalogue.GetBackupTargetFor(contentItem);
-        var hashes = await backupTarget.CalculateHashes(contentItem);
-        if (hashes != null)
+        var entryList = catalogue.ContentLengths[key];
+        if (entryList.Count > 1)
         {
-          contentItem.PrimaryContentHash = hashes.PrimaryHash;
-          contentItem.SecondaryContentHash = hashes.SecondaryHash;
-          catalogue.AddContentHash(hashes.PrimaryHash, contentItem);
+          foreach (var entry in entryList.Where(x => string.IsNullOrWhiteSpace(x.PrimaryContentHash)))
+          {
+            primaryHashCount++;
+            var backupTarget = catalogue.GetBackupTargetFor(entry);
+            entry.PrimaryContentHash = await backupTarget.CalculatePrimaryHash(entry);
+            ReportProgress(progressCallback, $"Primary hashes created: {primaryHashCount}. Secondary hashes created: {secondaryHashCount}");
+            if (catalogue.ContentHashes.ContainsKey(entry.PrimaryContentHash))
+            {
+              entry.SecondaryContentHash = await backupTarget.CalculateSecondaryHash(entry);
+              secondaryHashCount++;
+              foreach (var newDuplicate in catalogue.ContentHashes[entry.PrimaryContentHash])
+              {
+                if (string.IsNullOrEmpty(newDuplicate.SecondaryContentHash))
+                {
+                  var secondaryBackupTarget = catalogue.GetBackupTargetFor(newDuplicate);
+                  newDuplicate.SecondaryContentHash = await secondaryBackupTarget.CalculateSecondaryHash(newDuplicate);
+                  secondaryHashCount++;
+                  ReportProgress(progressCallback, $"Primary hashes created: {primaryHashCount}. Secondary hashes created: {secondaryHashCount}");
+                }
+              }
+            }
+            catalogue.AddContentHash(entry.PrimaryContentHash, entry);
+          }
         }
-
         currentFile++;
-        ReportProgress(progressCallback, contentItem.SourceFileInfo);
+        ReportProgress(progressCallback, $"Primary hashes created: {primaryHashCount}. Secondary hashes created: {secondaryHashCount}");
       }
+
+      //var allContentWithoutHashes = catalogue.GetAllContentEntriesWithoutHashes(progressCallback);
+      //if (!allContentWithoutHashes.Any())
+      //{
+      //  progressCallback.Report(new ProgressReport("All files are already hashed."));
+      //  return true;
+      //}
+      //maxNumberOfFiles = allContentWithoutHashes.Count();
+      //lastProgressReport = DateTime.Now;
+
+      //progressCallback.Report(new ProgressReport("Scanning for missing file hashes..."));
+      //foreach (var contentItem in allContentWithoutHashes)
+      //{
+      //  var backupTarget = catalogue.GetBackupTargetFor(contentItem);
+      //  var hashes = await backupTarget.CalculateHashes(contentItem);
+      //  if (hashes != null)
+      //  {
+      //    contentItem.PrimaryContentHash = hashes.PrimaryHash;
+      //    contentItem.SecondaryContentHash = hashes.SecondaryHash;
+      //    catalogue.AddContentHash(hashes.PrimaryHash, contentItem);
+      //  }
+
+      //  currentFile++;
+      //  ReportProgress(progressCallback, contentItem.SourceFileInfo);
+      //}
       catalogue.WriteCatalogue();
       catalogue.CloseTargets();
       await Task.Delay(500);
@@ -182,20 +220,52 @@ namespace Vibe.Hammer.SmartBackup
       foreach (var entryList in allPossibleDublicates)
       {
         currentFile++;
-        ContentCatalogueBinaryEntry primaryEntry = null;
-        foreach (var entry in entryList)
+        var groupBySecondaryHash = from entry in entryList
+                                   where !string.IsNullOrEmpty(entry.SecondaryContentHash)
+                                   group entry by entry.SecondaryContentHash into newGroup
+                                   orderby newGroup.Key
+                                   select newGroup;
+        foreach (var hashGroup in groupBySecondaryHash)
         {
-          if (primaryEntry == null)
+          ContentCatalogueBinaryEntry primaryEntry = null;
+          foreach (var groupEntry in hashGroup)
           {
-            primaryEntry = entry;
-            continue;
+            if (primaryEntry == null)
+            {
+              primaryEntry = groupEntry;
+              continue;
+            }
+
+            if (groupEntry.SecondaryContentHash == primaryEntry.SecondaryContentHash)
+            {
+              var link = new ContentCatalogueUnclaimedLinkEntry(groupEntry, primaryEntry);
+              catalogue.ReplaceBinaryEntryWithLink(groupEntry, link);
+            }
+
+            
           }
-
-          var link = new ContentCatalogueUnclaimedLinkEntry(entry, primaryEntry);
-          catalogue.ReplaceBinaryEntryWithLink(entry, link);
-
-          ReportProgress(progressCallback, link.SourceFileInfo);
+          ReportProgress(progressCallback, primaryEntry.SourceFileInfo);
         }
+        //foreach (var entry in entryList.GroupBy(x => x.SecondaryContentHash))
+        //{
+        //  foreach (var key in entry.)
+        //  {
+            
+        //  }
+        //  if (primaryEntry == null)
+        //  {
+        //    primaryEntry = entry;
+        //    continue;
+        //  }
+
+        //  if (entry.SecondaryContentHash == primaryEntry.SecondaryContentHash)
+        //  {
+        //    var link = new ContentCatalogueUnclaimedLinkEntry(entry, primaryEntry);
+        //    catalogue.ReplaceBinaryEntryWithLink(entry, link);
+        //  }
+
+        //  ReportProgress(progressCallback, link.SourceFileInfo);
+        //}
       }
       catalogue.WriteCatalogue();
       catalogue.CloseTargets();

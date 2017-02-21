@@ -207,28 +207,63 @@ namespace Vibe.Hammer.SmartBackup
         GC.WaitForPendingFinalizers();
       }
     }
-    public async Task<HashPair> CalculateHashes(ContentCatalogueBinaryEntry entry)
+    //public async Task<HashPair> CalculateHashes(ContentCatalogueBinaryEntry entry)
+    //{
+    //  var tempFile = await binaryHandler.ExtractFile(entry);
+      
+    //  if (tempFile.Exists)
+    //  {
+    //    try
+    //    {
+    //      return new HashPair
+    //      {
+    //        PrimaryHash = await primaryHasher.GetHashString(tempFile),
+    //        SecondaryHash = await secondaryHasher.GetHashString(tempFile)
+    //      };
+    //    }
+    //    finally
+    //    {
+    //      tempFile.Delete();
+    //    }
+    //  }
+    //  return null;
+    //}
+
+    public async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry)
     {
       var tempFile = await binaryHandler.ExtractFile(entry);
-      
+
       if (tempFile.Exists)
       {
         try
         {
-          return new HashPair
-          {
-            PrimaryHash = await primaryHasher.GetHashString(tempFile),
-            SecondaryHash = await secondaryHasher.GetHashString(tempFile)
-          };
+          return await primaryHasher.GetHashString(tempFile);
         }
         finally
         {
           tempFile.Delete();
         }
       }
-      return null;
+      return string.Empty;
     }
 
+    public async Task<string> CalculateSecondaryHash(ContentCatalogueBinaryEntry entry)
+    {
+      var tempFile = await binaryHandler.ExtractFile(entry);
+
+      if (tempFile.Exists)
+      {
+        try
+        {
+          return await secondaryHasher.GetHashString(tempFile);
+        }
+        finally
+        {
+          tempFile.Delete();
+        }
+      }
+      return string.Empty;
+    }
     public async Task<bool> ReclaimSpace(IProgress<ProgressReport> progressCallback)
     {
       if (await binaryHandler.CreateNewFile(0, tail))
