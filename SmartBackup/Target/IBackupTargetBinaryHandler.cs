@@ -14,11 +14,13 @@ namespace Vibe.Hammer.SmartBackup
   {
     Task<bool> InsertFile(ContentCatalogueBinaryEntry file, FileInfo sourceFile);
     Task<bool> RemoveFile(ContentCatalogueBinaryEntry file);
-    Task<bool> Defragment();
     bool BinaryFileExists { get; }
     Task<FileInfo> ExtractFile(ContentCatalogueBinaryEntry file);
-    Task MoveBytes(long moveFromOffset, long numberOfBytesToMove, long newOffset);
+    Task<bool> MoveBytes(long moveFromOffset, long numberOfBytesToMove, long newOffset);
     void CloseStream();
     Task<bool> CreateNewFile(long offset, long length);
+    //Task<bool> CopyBytesFromStreamAsync(FileStream source, long sourceOffset, long length);
+    Task<bool> CopyBytesToStreamAsync(FileStream outputStream, long offset, long length);
+    bool SwapFiles(FileInfo newFile);
   }
 }

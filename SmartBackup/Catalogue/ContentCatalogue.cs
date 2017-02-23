@@ -230,18 +230,24 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       {
         return BackupTargetConstants.DataOffset;
       }
-      long calculatedTail = SearchTargets[targetId].Content.OfType<ContentCatalogueBinaryEntry>().Max(item => item.TargetOffset + item.TargetLength);
+
+      long calculatedTail = 0;
+      var entries = SearchTargets[targetId].Content.OfType<ContentCatalogueBinaryEntry>();
+      if (entries.Any())
+      {
+        calculatedTail = entries.Max(item => item.TargetOffset + item.TargetLength);
+      }
       return Math.Max(calculatedTail, BackupTargetConstants.DataOffset);
     }
 
-    public async Task InsertFile(FileInformation file, int version)
+    public async Task InsertFile(FileInformation file, int version, bool compressIfPossible)
     {
       var backupTarget = GetBackupTargetForFile(file);
       if (backupTarget == null)
       {
         backupTarget = CreateNewBackupTarget();
       }
-      var entry = await backupTarget.AddFile(file, version);
+      var entry = await backupTarget.AddFile(file, version, compressIfPossible);
       SearchTargets[backupTarget.TargetId].Add(entry);
     }
 

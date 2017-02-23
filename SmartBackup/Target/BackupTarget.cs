@@ -43,13 +43,13 @@ namespace Vibe.Hammer.SmartBackup
 
     public int TargetId => ID;
 
-    public async Task<ContentCatalogueBinaryEntry> AddFile(FileInformation file, int version)
+    public async Task<ContentCatalogueBinaryEntry> AddFile(FileInformation file, int version, bool compressIfPossible)
     {
       EnsureInitialized();
-      return await InsertFile(file, version);
+      return await InsertFile(file, version, compressIfPossible);
     }
 
-    private async Task<ContentCatalogueBinaryEntry> InsertFile(FileInformation file, int version)
+    private async Task<ContentCatalogueBinaryEntry> InsertFile(FileInformation file, int version, bool compressIfPossible)
     {
       var item = new ContentCatalogueBinaryEntry
       {
@@ -61,18 +61,29 @@ namespace Vibe.Hammer.SmartBackup
 
       var sourceFile = new FileInfo(file.FullyQualifiedFilename);
 
-      item.Compressed = compressionHandler.ShouldCompress(sourceFile);
-      if (item.Compressed)
+      var shouldCompress = compressionHandler.ShouldCompress(sourceFile);
+      if (shouldCompress && compressIfPossible)
       {
         var tempFile = new FileInfo(Path.GetTempFileName());
         if (!await compressionHandler.CompressFile(sourceFile, tempFile, CompressionModes.Stream))
           throw new AddFileToArchiveException("Unable to compress file");
 
-        item.TargetLength = GetFileSize(tempFile);
-        await InsertBinary(item, tempFile);
-        GC.WaitForPendingFinalizers();
-        tempFile.Delete();
-
+        if (tempFile.Length < sourceFile.Length)
+        {
+          item.Compressed = true;
+          item.TargetLength = GetFileSize(tempFile);
+          await InsertBinary(item, tempFile);
+          GC.WaitForPendingFinalizers();
+          tempFile.Delete();
+        }
+        else
+        {
+          // Note: Compression caused the file to expand. This would be caused by files that cannot be compressed, like very small files or encrypted files.
+          item.Compressed = false;
+          item.TargetLength = GetFileSize(sourceFile);
+          await InsertBinary(item, sourceFile);
+          tempFile.Delete();
+        }
       }
       else
       {
@@ -281,35 +292,83 @@ namespace Vibe.Hammer.SmartBackup
     public async Task<bool> Defragment(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback)
     {
       var entries = binariesToMove.OrderBy(x => x.TargetOffset).ToArray();
+      var tempFile = new FileInfo(Path.GetTempFileName());
+      var tempFilename = tempFile.FullName;
 
-      long currentOffset = BackupTargetConstants.DataOffset;
-      var time = DateTime.Now;
-      for (int i = 0; i < entries.Length; i++)
+      try
       {
-        var entry = entries[i];
-        if (entry.TargetOffset > currentOffset)
+        long currentOffset = BackupTargetConstants.DataOffset;
+        using (var outputStream = tempFile.Create())
         {
-          await binaryHandler.MoveBytes(entry.TargetOffset, entry.TargetLength, currentOffset);
-          entry.TargetOffset = currentOffset;
-        }
-        currentOffset += entry.TargetLength;
+          var time = DateTime.Now;
+          for (int i = 0; i < entries.Length; i++)
+          {
+            var entry = entries[i];
+            if (await binaryHandler.CopyBytesToStreamAsync(outputStream, entry.TargetOffset, entry.TargetLength))
+            {
+              //entry.TargetOffset = currentOffset;
+              currentOffset += entry.TargetLength;
+            }
+            //if (entry.TargetOffset > currentOffset)
+            //{
+            //  await binaryHandler.MoveBytes(entry.TargetOffset, entry.TargetLength, currentOffset);
+            //  entry.TargetOffset = currentOffset;
+            //}
+            //currentOffset += entry.TargetLength;
 
-        if (DateTime.Now - time > TimeSpan.FromSeconds(5))
+            if (DateTime.Now - time > TimeSpan.FromSeconds(5))
+            {
+              progressCallback.Report(new ProgressReport($"Moving {i} of {entries.Length}", i, entries.Length));
+              time = DateTime.Now;
+            }
+          }
+
+          binaryHandler.CloseStream();
+        }
+        GC.WaitForPendingFinalizers();
+        await Task.Delay(500);
+        if (binaryHandler.SwapFiles(tempFile))
         {
-          progressCallback.Report(new ProgressReport($"Moving {i} of {entries.Length}", i, entries.Length));
-          time = DateTime.Now;
+          for (int i = 0; i < entries.Length; i++)
+          {
+            if (i == 0)
+              entries[i].TargetOffset = 0;
+            else
+              entries[i].TargetOffset = entries[i - 1].TargetOffset + entries[i - 1].TargetLength;
+          }
+          if (tail > currentOffset)
+          {
+            progressCallback.Report(new ProgressReport($"Defragmentation left {(tail / (1024 * 1024)) - (currentOffset / (1024 * 1024))} MB available in the file"));
+          }
+          else
+            progressCallback.Report(new ProgressReport("No space was reclaimed"));
+          tail = currentOffset;
+        }
+        return true;
+      }
+      catch (Exception err)
+      {
+        throw;
+      }
+      finally
+      {
+        SafeDeleteTemporaryFile(tempFilename);
+      }
+    }
+
+    private static void SafeDeleteTemporaryFile(string tempFilename)
+    {
+      if (File.Exists(tempFilename))
+      {
+        try
+        {
+          File.Delete(tempFilename);
+        }
+        catch
+        {
+
         }
       }
-
-      if (tail > currentOffset)
-      {
-          progressCallback.Report(new ProgressReport($"Defragmentation left {(tail / (1024 * 1024)) - (currentOffset / (1024 * 1024))} MB available in the file"));
-
-      }
-      else
-        progressCallback.Report(new ProgressReport("No space was reclaimed"));
-      tail = currentOffset;
-      return true;
     }
 
     private long RecalculateOffsets(ContentCatalogueBinaryEntry[] binaryEntries)

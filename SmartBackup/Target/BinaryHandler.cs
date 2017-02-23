@@ -38,11 +38,6 @@ namespace Vibe.Hammer.SmartBackup
       Dispose(false);
     }
 
-    public virtual Task<bool> Defragment()
-    {
-      throw new NotImplementedException();
-    }
-
     public virtual async Task<bool> InsertFile(ContentCatalogueBinaryEntry file, FileInfo sourceFile)
     {
       if (!sourceFile.Exists)
@@ -200,7 +195,7 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    public async Task MoveBytes(long moveFromOffset, long numberOfBytesToMove, long newOffset)
+    public async Task<bool> MoveBytes(long moveFromOffset, long numberOfBytesToMove, long newOffset)
     {
       if (await OpenStream())
       {
@@ -212,6 +207,8 @@ namespace Vibe.Hammer.SmartBackup
         {
           targetStream.Seek(currentSourceOffset, SeekOrigin.Begin);
           var read = await targetStream.ReadAsync(buffer, 0, (int)Math.Min(remainingBytes, BackupTargetConstants.BufferSize));
+          if (read == 0 && remainingBytes > 0)
+            return false;
           currentSourceOffset += read;
           if (read > 0)
           {
@@ -224,6 +221,7 @@ namespace Vibe.Hammer.SmartBackup
       }
       else
         throw new UnableToOpenStreamException();
+      return true;
     }
 
     private FileInfo GetTempFile()
@@ -259,18 +257,7 @@ namespace Vibe.Hammer.SmartBackup
       using (var outputStream = tempFile.Create())
       {
         if (await OpenStream())
-        {
-          targetStream.Seek(offset, SeekOrigin.Begin);
-          var buffer = new byte[BackupTargetConstants.BufferSize];
-          var bytesToGo = length;
-          do
-          {
-            var read = await targetStream.ReadAsync(buffer, 0, (int)Math.Min(BackupTargetConstants.BufferSize, bytesToGo));
-            if (read > 0)
-              await outputStream.WriteAsync(buffer, 0, read);
-            bytesToGo -= read;
-          } while (bytesToGo > 0);
-        }
+          await CopyBytesToStreamAsync(outputStream, offset, length);
       }
       CloseStream();
       GC.WaitForPendingFinalizers();
@@ -279,6 +266,27 @@ namespace Vibe.Hammer.SmartBackup
         OverwriteExisting(TargetFile, tempFile);
       }
       return true;
+    }
+
+    public async Task<bool> CopyBytesToStreamAsync(FileStream outputStream, long offset, long length)
+    {
+      if (await OpenStream())
+      {
+        targetStream.Seek(offset, SeekOrigin.Begin);
+        var buffer = new byte[BackupTargetConstants.BufferSize];
+        var bytesToGo = length;
+        do
+        {
+          var read = await targetStream.ReadAsync(buffer, 0, (int)Math.Min(BackupTargetConstants.BufferSize, bytesToGo));
+          if (read > 0)
+            await outputStream.WriteAsync(buffer, 0, read);
+          bytesToGo -= read;
+          if (bytesToGo > 0 && read == 0)
+            return false;
+        } while (bytesToGo > 0);
+        return true;
+      }
+      return false;
     }
 
     public void OverwriteExisting(FileInfo existing, FileInfo newFile)
@@ -299,6 +307,49 @@ namespace Vibe.Hammer.SmartBackup
         File.Move(movedFilename, existingFilename);
         return;
       }
+    }
+
+    public bool SwapFiles(FileInfo newFile)
+    {
+      CloseStream();
+      if (IsTargetLocked())
+        return false;
+
+      var original = new FileInfo(TargetFile + ".orig");
+      tempFilenames.Add(original.FullName);
+      try
+      {
+        File.Move(TargetFile.FullName, original.FullName);
+      }
+      catch
+      {
+        return false;
+      }
+
+      try
+      {
+        newFile.MoveTo(TargetFile.FullName);
+      }
+      catch
+      {
+        try
+        {
+          File.Move(original.FullName, TargetFile.FullName);
+        }
+        catch
+        {
+        }
+        return false;
+      }
+      try
+      {
+        original.Delete();
+      }
+      catch
+      {
+
+      }
+      return true;
     }
   }
 }

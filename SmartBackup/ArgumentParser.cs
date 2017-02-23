@@ -49,6 +49,10 @@ namespace Vibe.Hammer.SmartBackup
         case "-debug":
           args.Debug = true;
           break;
+        case "-compress":
+        case "-c":
+          args.Compress = true;
+          break;
         default:
           throw new ArgumentException(paramter);
       }

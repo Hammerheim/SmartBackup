@@ -25,7 +25,7 @@ namespace Vibe.Hammer.SmartBackup
       catalogue = null;
       root = targetRoot;
     }
-    public async Task<bool> Backup(IFileLog log, DirectoryInfo targetRoot, int fileSize, string filenamePattern, IProgress<ProgressReport> progressCallback)
+    public async Task<bool> Backup(IFileLog log, DirectoryInfo targetRoot, int fileSize, string filenamePattern, bool compressIfPossible, IProgress<ProgressReport> progressCallback)
     {
       currentFile = 0;
       progressCallback.Report(new ProgressReport("Starting backup"));
@@ -41,19 +41,19 @@ namespace Vibe.Hammer.SmartBackup
         ReportProgress(progressCallback, file);
         var currentVersion = catalogue.GetNewestVersion(file);
         if (currentVersion == null)
-          await catalogue.InsertFile(file, 1);
+          await catalogue.InsertFile(file, 1, compressIfPossible);
         else
         {
           if (currentVersion.SourceFileInfo.LastModified < file.LastModified)
           {
-            await catalogue.InsertFile(file, currentVersion.Version + 1);
+            await catalogue.InsertFile(file, currentVersion.Version + 1, compressIfPossible);
           } 
           else if (currentVersion.SourceFileInfo.LastModified == file.LastModified && currentVersion.Deleted)
           {
             // The deleted file has likely been restored, but there is a slight posibility that it is not the same file. Therefore the file is reinserted. 
             // If the binaries are the same, a maintenance run will convert one of them to a link and reclaim the space. This is the safe option rather than 
             // just setting the currentVersion.Deleted = false.
-            await catalogue.InsertFile(file, currentVersion.Version + 1);
+            await catalogue.InsertFile(file, currentVersion.Version + 1, compressIfPossible);
           }
         }
       }
@@ -309,7 +309,7 @@ namespace Vibe.Hammer.SmartBackup
         if (await target.Defragment(entries, progressCallback))
         {
           ConvertAllUnclaimedLinksToClaimedLinks(target.BackupTargetIndex);
-          await target.ReclaimSpace(progressCallback);
+          //await target.ReclaimSpace(progressCallback);
         }
       }
       catalogue.WriteCatalogue();

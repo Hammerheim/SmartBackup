@@ -27,5 +27,6 @@ namespace Vibe.Hammer.SmartBackup
 
     public bool Debug { get; internal set; }
     public string FilenamePattern { get; internal set; }
+    public bool Compress { get; internal set; }
   }
 }

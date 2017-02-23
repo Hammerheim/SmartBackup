@@ -45,7 +45,7 @@ namespace Vibe.Hammer.SmartBackup
 
         if (arguments.ShouldBackup)
         {
-          MainBackupAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB, arguments.FilenamePattern).Wait();
+          MainBackupAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB, arguments.FilenamePattern, arguments.Compress).Wait();
         }
         if (arguments.ShouldMaintain)
         {
@@ -133,12 +133,12 @@ namespace Vibe.Hammer.SmartBackup
       path = path.Replace('/', '\\');
       return path;
     }
-    private static async Task MainBackupAsync(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern)
+    private static async Task MainBackupAsync(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern, bool compressIfPossible)
     {
-      await Backup(source, target, fileSize, filenamePattern);
+      await Backup(source, target, fileSize, filenamePattern, compressIfPossible);
     }
 
-    private static async Task Backup(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern)
+    private static async Task Backup(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern, bool compressIfPossible)
     {
       var callbackObject = new Callback();
 
@@ -148,7 +148,7 @@ namespace Vibe.Hammer.SmartBackup
       var result = await runner.Scan(source, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       if (result != null)
       {
-        await runner.Backup(result, target, fileSize, filenamePattern, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+        await runner.Backup(result, target, fileSize, filenamePattern, compressIfPossible, new Progress<ProgressReport>(callbackObject.ProgressCallback));
         await runner.IdentifyDeletedFiles(target, fileSize, filenamePattern, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       }
 
