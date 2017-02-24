@@ -16,7 +16,7 @@ namespace Vibe.Hammer.SmartBackup
     {
       this.hasher = hasher;
     }
-    public async Task<FileInformation> Gather(FileInfo file, DirectoryInfo root, bool deepScan)
+    public FileInformation Gather(FileInfo file, DirectoryInfo root, bool deepScan)
     {
       var info = new FileInformation
       {

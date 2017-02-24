@@ -18,11 +18,11 @@ namespace Vibe.Hammer.SmartBackup
       this.logger = logger;
     }
 
-    public async Task<bool> Handle(FileInfo info, DirectoryInfo root, bool deepScan)
+    public bool Handle(FileInfo info, DirectoryInfo root, bool deepScan)
     {
-      var fileData = await gatherer.Gather(info, root, deepScan);
+      var fileData = gatherer.Gather(info, root, deepScan);
       if (fileData != null)
-        logger.Log(fileData);
+        logger.Add(fileData);
       return true;
     }
   }

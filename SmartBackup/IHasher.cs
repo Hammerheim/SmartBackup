@@ -5,9 +5,9 @@ namespace Vibe.Hammer.SmartBackup
 {
   public interface IHasher
   {
-    Task<byte[]> GetHash(FileInfo file);
-    Task<byte[]> GetHash(string source);
+    //Task<byte[]> GetHash(FileInfo file);
+    //Task<byte[]> GetHash(string source);
     Task<string> GetHashString(FileInfo file);
-    Task<string> GetHashString(string source);
+    //Task<string> GetHashString(string source);
   }
 }

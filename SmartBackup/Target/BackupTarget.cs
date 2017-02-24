@@ -49,64 +49,6 @@ namespace Vibe.Hammer.SmartBackup
       return await InsertFile(file, version, compressIfPossible);
     }
 
-    private async Task<ContentCatalogueBinaryEntry> InsertFile(FileInformation file, int version, bool compressIfPossible)
-    {
-      var item = new ContentCatalogueBinaryEntry
-      {
-        SourceFileInfo = file,
-        TargetOffset = tail,
-        Deleted = false,
-        Version = version
-      };
-
-      var sourceFile = new FileInfo(file.FullyQualifiedFilename);
-
-      var shouldCompress = compressionHandler.ShouldCompress(sourceFile);
-      if (shouldCompress && compressIfPossible)
-      {
-        var tempFile = new FileInfo(Path.GetTempFileName());
-        if (!await compressionHandler.CompressFile(sourceFile, tempFile, CompressionModes.Stream))
-          throw new AddFileToArchiveException("Unable to compress file");
-
-        if (tempFile.Length < sourceFile.Length)
-        {
-          item.Compressed = true;
-          item.TargetLength = GetFileSize(tempFile);
-          await InsertBinary(item, tempFile);
-          GC.WaitForPendingFinalizers();
-          tempFile.Delete();
-        }
-        else
-        {
-          // Note: Compression caused the file to expand. This would be caused by files that cannot be compressed, like very small files or encrypted files.
-          item.Compressed = false;
-          item.TargetLength = GetFileSize(sourceFile);
-          await InsertBinary(item, sourceFile);
-          tempFile.Delete();
-        }
-      }
-      else
-      {
-        item.TargetLength = GetFileSize(sourceFile);
-        await InsertBinary(item, sourceFile);
-      }
-      return item;
-    }
-
-    private async Task InsertBinary(ContentCatalogueBinaryEntry item, FileInfo sourceFile)
-    {
-      var success = await binaryHandler.InsertFile(item, sourceFile);
-      if (success)
-      {
-        tail = item.TargetOffset + item.TargetLength;
-      }
-    }
-
-    private long GetFileSize(FileInfo file)
-    {
-      return file.Length;
-    }
-
     public bool CanContain(FileInformation file)
     {
       EnsureInitialized();
@@ -128,12 +70,6 @@ namespace Vibe.Hammer.SmartBackup
       Initialized = true;
     }
 
-    private void EnsureInitialized()
-    {
-      if (!Initialized)
-        throw new BackupTargetNotInitializedException();
-    }
-
     public async Task ExtractFile(ContentCatalogueBinaryEntry file, DirectoryInfo extractionRoot)
     {
       var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, file.SourceFileInfo.RelativePath, file.SourceFileInfo.FileName));
@@ -149,7 +85,7 @@ namespace Vibe.Hammer.SmartBackup
         {
           try
           {
-            await compressionHandler.DecompressFile(tempFile, targetFile, CompressionModes.Stream);
+            await compressionHandler.DecompressFile(tempFile, targetFile);
           }
           finally
           {
@@ -165,13 +101,10 @@ namespace Vibe.Hammer.SmartBackup
               var lastWriteTime = targetFile.LastWriteTime;
               var movedFile = new FileInfo(targetFile.FullName + ".tmp");
               File.Move(targetFile.FullName, movedFile.FullName);
-              //targetFile.MoveTo(movedFile.FullName);
               try
               {
                 GC.WaitForPendingFinalizers();
                 File.Move(tempFile.FullName, targetFile.FullName);
-                
-                //tempFile.MoveTo(targetFile.FullName);
               }
               catch 
               {
@@ -205,7 +138,7 @@ namespace Vibe.Hammer.SmartBackup
         {
           try
           {
-            await compressionHandler.DecompressFile(tempFile, targetFile, CompressionModes.Stream);
+            await compressionHandler.DecompressFile(tempFile, targetFile);
           }
           finally
           {
@@ -218,27 +151,7 @@ namespace Vibe.Hammer.SmartBackup
         GC.WaitForPendingFinalizers();
       }
     }
-    //public async Task<HashPair> CalculateHashes(ContentCatalogueBinaryEntry entry)
-    //{
-    //  var tempFile = await binaryHandler.ExtractFile(entry);
-      
-    //  if (tempFile.Exists)
-    //  {
-    //    try
-    //    {
-    //      return new HashPair
-    //      {
-    //        PrimaryHash = await primaryHasher.GetHashString(tempFile),
-    //        SecondaryHash = await secondaryHasher.GetHashString(tempFile)
-    //      };
-    //    }
-    //    finally
-    //    {
-    //      tempFile.Delete();
-    //    }
-    //  }
-    //  return null;
-    //}
+
 
     public async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry)
     {
@@ -275,19 +188,6 @@ namespace Vibe.Hammer.SmartBackup
       }
       return string.Empty;
     }
-    public async Task<bool> ReclaimSpace(IProgress<ProgressReport> progressCallback)
-    {
-      if (await binaryHandler.CreateNewFile(0, tail))
-      {
-        progressCallback.Report(new ProgressReport($"Reclaimed available space in backup target {ID}"));
-        return true;
-      }
-      else
-      {
-        progressCallback.Report(new ProgressReport($"No space reclaimed in backup target {ID}"));
-        return false;
-      }
-    }
 
     public async Task<bool> Defragment(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback)
     {
@@ -306,15 +206,8 @@ namespace Vibe.Hammer.SmartBackup
             var entry = entries[i];
             if (await binaryHandler.CopyBytesToStreamAsync(outputStream, entry.TargetOffset, entry.TargetLength))
             {
-              //entry.TargetOffset = currentOffset;
               currentOffset += entry.TargetLength;
             }
-            //if (entry.TargetOffset > currentOffset)
-            //{
-            //  await binaryHandler.MoveBytes(entry.TargetOffset, entry.TargetLength, currentOffset);
-            //  entry.TargetOffset = currentOffset;
-            //}
-            //currentOffset += entry.TargetLength;
 
             if (DateTime.Now - time > TimeSpan.FromSeconds(5))
             {
@@ -356,6 +249,75 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
+    public void CloseStream()
+    {
+      binaryHandler.CloseStream();
+    }
+
+    private async Task<ContentCatalogueBinaryEntry> InsertFile(FileInformation file, int version, bool compressIfPossible)
+    {
+      var item = new ContentCatalogueBinaryEntry
+      {
+        SourceFileInfo = file,
+        TargetOffset = tail,
+        Deleted = false,
+        Version = version
+      };
+
+      var sourceFile = new FileInfo(file.FullyQualifiedFilename);
+
+      var shouldCompress = compressionHandler.ShouldCompress(sourceFile);
+      if (shouldCompress && compressIfPossible)
+      {
+        var tempFile = new FileInfo(Path.GetTempFileName());
+        if (!await compressionHandler.CompressFile(sourceFile, tempFile))
+          throw new AddFileToArchiveException("Unable to compress file");
+
+        if (tempFile.Length < sourceFile.Length)
+        {
+          item.Compressed = true;
+          item.TargetLength = GetFileSize(tempFile);
+          await InsertBinary(item, tempFile);
+          GC.WaitForPendingFinalizers();
+          tempFile.Delete();
+        }
+        else
+        {
+          // Note: Compression caused the file to expand. This would be caused by files that cannot be compressed, like very small files or encrypted files.
+          item.Compressed = false;
+          item.TargetLength = GetFileSize(sourceFile);
+          await InsertBinary(item, sourceFile);
+          tempFile.Delete();
+        }
+      }
+      else
+      {
+        item.TargetLength = GetFileSize(sourceFile);
+        await InsertBinary(item, sourceFile);
+      }
+      return item;
+    }
+
+    private async Task InsertBinary(ContentCatalogueBinaryEntry item, FileInfo sourceFile)
+    {
+      var success = await binaryHandler.InsertFile(item, sourceFile);
+      if (success)
+      {
+        tail = item.TargetOffset + item.TargetLength;
+      }
+    }
+
+    private long GetFileSize(FileInfo file)
+    {
+      return file.Length;
+    }
+
+    private void EnsureInitialized()
+    {
+      if (!Initialized)
+        throw new BackupTargetNotInitializedException();
+    }
+
     private static void SafeDeleteTemporaryFile(string tempFilename)
     {
       if (File.Exists(tempFilename))
@@ -369,23 +331,6 @@ namespace Vibe.Hammer.SmartBackup
 
         }
       }
-    }
-
-    private long RecalculateOffsets(ContentCatalogueBinaryEntry[] binaryEntries)
-    {
-      long temporaryTail = BackupTargetConstants.DataOffset;
-      foreach (var entry in binaryEntries)
-      {
-        entry.TargetOffset = temporaryTail;
-        temporaryTail += entry.TargetLength;
-      }
-
-      return temporaryTail;
-    }
-
-    public void CloseStream()
-    {
-      binaryHandler.CloseStream();
     }
   }
 }

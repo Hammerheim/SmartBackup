@@ -158,6 +158,7 @@ namespace Vibe.Hammer.SmartBackup
       //file is not locked
       return false;
     }
+
     public void CloseStream()
     {
       if (targetStream != null)
@@ -167,11 +168,6 @@ namespace Vibe.Hammer.SmartBackup
         GC.WaitForPendingFinalizers();
       }
       steamIsOpen = false;
-    }
-
-    public virtual Task<bool> RemoveFile(ContentCatalogueBinaryEntry file)
-    {
-      throw new NotImplementedException();
     }
 
     public void Dispose()
@@ -193,35 +189,6 @@ namespace Vibe.Hammer.SmartBackup
           DeleteTempFiles();
         }
       }
-    }
-
-    public async Task<bool> MoveBytes(long moveFromOffset, long numberOfBytesToMove, long newOffset)
-    {
-      if (await OpenStream())
-      {
-        long remainingBytes = numberOfBytesToMove;
-        long currentSourceOffset = moveFromOffset;
-        long currentTargetOffset = newOffset;
-        byte[] buffer = new byte[BackupTargetConstants.BufferSize];
-        do
-        {
-          targetStream.Seek(currentSourceOffset, SeekOrigin.Begin);
-          var read = await targetStream.ReadAsync(buffer, 0, (int)Math.Min(remainingBytes, BackupTargetConstants.BufferSize));
-          if (read == 0 && remainingBytes > 0)
-            return false;
-          currentSourceOffset += read;
-          if (read > 0)
-          {
-            targetStream.Seek(currentTargetOffset, SeekOrigin.Begin);
-            await targetStream.WriteAsync(buffer, 0, read);
-            currentTargetOffset += read;
-          }
-          remainingBytes -= read;
-        } while (remainingBytes > 0);
-      }
-      else
-        throw new UnableToOpenStreamException();
-      return true;
     }
 
     private FileInfo GetTempFile()

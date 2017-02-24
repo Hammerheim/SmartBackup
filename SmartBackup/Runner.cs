@@ -291,10 +291,7 @@ namespace Vibe.Hammer.SmartBackup
       var allUnclaimedLinks = catalogue.GetUnclaimedLinks();
       if (!allUnclaimedLinks.Any())
       {
-        foreach (var target in catalogue.Targets)
-          await target.ReclaimSpace(progressCallback);
-
-        //progressCallback.Report(new ProgressReport("There are no space that must be reclaimed."));
+        progressCallback.Report(new ProgressReport("There are no space that must be reclaimed."));
         return true;
       }
       maxNumberOfFiles = allUnclaimedLinks.Count();

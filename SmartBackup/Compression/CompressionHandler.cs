@@ -11,13 +11,9 @@ namespace Vibe.Hammer.SmartBackup.Compression
 {
   internal class CompressionHandler : ICompressionHandler
   {
-    public virtual async Task<bool> CompressFile(FileInfo sourceFile, FileInfo targetFile, CompressionModes mode)
+    public virtual async Task<bool> CompressFile(FileInfo sourceFile, FileInfo targetFile)
     {
-      if (mode == CompressionModes.Archive)
-        return await CompressFileAsArchive(sourceFile, targetFile);
-      else if (mode == CompressionModes.Stream)
-        return await CompressFileAsStream(sourceFile, targetFile);
-      return false;
+      return await CompressFileAsStream(sourceFile, targetFile);
     }
 
     private async Task<bool> CompressFileAsStream(FileInfo sourceFile, FileInfo targetFile)
@@ -64,14 +60,9 @@ namespace Vibe.Hammer.SmartBackup.Compression
       }
     }
 
-    public virtual async Task<bool> DecompressFile(FileInfo compressedFile, FileInfo sourceFile, CompressionModes mode)
+    public virtual async Task<bool> DecompressFile(FileInfo compressedFile, FileInfo sourceFile)
     {
-      if (mode == CompressionModes.Archive)
-        return await DecompressFileArchive(compressedFile, sourceFile);
-      else if (mode == CompressionModes.Stream)
-        return await DecompressFileStream(compressedFile, sourceFile);
-      return false;
-
+      return await DecompressFileStream(compressedFile, sourceFile);
     }
 
     private async Task<bool> DecompressFileStream(FileInfo compressedFile, FileInfo targetFile)
@@ -119,66 +110,6 @@ namespace Vibe.Hammer.SmartBackup.Compression
       catch (Exception err)
       {
         throw new DecompressionOfStreamFailedException(targetFile.FullName, err);
-      }
-    }
-
-    public virtual Task<bool> DecompressStream(Stream source, Stream result)
-    {
-      throw new NotImplementedException();
-    }
-
-    public virtual Task<bool> DecompressStream(Stream source, Stream result, long offset, long length)
-    {
-      throw new NotImplementedException();
-    }
-
-    public virtual async Task<bool> CompressStream(Stream source, Stream result)
-    {
-      try
-      {
-        using (DeflateStream compressionStream = new DeflateStream(result, CompressionMode.Compress))
-        {
-          byte[] buffer = new byte[100000];
-          
-          bool done = false;
-          do
-          {
-            var read = await source.ReadAsync(buffer, 0, 100000);
-            if (read < 100000)
-              done = true;
-            if (read > 0)
-              await compressionStream.WriteAsync(buffer, 0, read);
-          } while (!done);
-        }
-        return true;
-      }
-      catch (Exception err)
-      {
-        return false;
-      }
-    }
-
-    private void OverwriteFile(FileInfo fileToOverwrite, FileInfo fileToMove)
-    {
-      try
-      {
-        GC.WaitForPendingFinalizers();
-        File.Delete(fileToOverwrite.FullName);
-        GC.WaitForPendingFinalizers();
-      }
-      catch (UnauthorizedAccessException err)
-      {
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-      }
-      try
-      {
-        File.Delete(fileToOverwrite.FullName);
-        File.Move(fileToMove.FullName, fileToOverwrite.FullName);
-      }
-      catch (Exception err)
-      {
-        throw;
       }
     }
 

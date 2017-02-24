@@ -11,6 +11,5 @@ namespace Vibe.Hammer.SmartBackup
   public interface IDirectoryRecurser
   {
     Task<bool> RecurseDirectory(DirectoryInfo root, IFileHandler fileHandler, bool deepScan, IProgress<ProgressReport> progressCallback);
-
   }
 }

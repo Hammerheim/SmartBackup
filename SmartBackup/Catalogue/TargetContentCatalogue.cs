@@ -52,7 +52,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     public Dictionary<string, List<ContentCatalogueEntry>> KeySearchContent { get; private set; }
 
     [XmlIgnore]
-    public BackupTarget BackupTarget { get; set; }
+    public IBackupTarget BackupTarget { get; set; }
 
     public void RebuildSearchIndex()
     {
@@ -82,11 +82,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     internal async Task<bool> Defragment(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback)
     {
       return await BackupTarget.Defragment(binariesToMove, progressCallback);
-    }
-
-    public async Task<bool> ReclaimSpace(IProgress<ProgressReport> progressCallback)
-    {
-      return await BackupTarget.ReclaimSpace(progressCallback);
     }
   }
 }

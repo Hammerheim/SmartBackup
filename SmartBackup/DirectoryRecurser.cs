@@ -26,7 +26,7 @@ namespace Vibe.Hammer.SmartBackup
     {
       foreach (var file in currentRoot.GetFiles())
       {
-        var result = await fileHandler.Handle(file, originalRoot, deepScan);
+        var result = fileHandler.Handle(file, originalRoot, deepScan);
         if (DateTime.Now - reportCheck > TimeSpan.FromSeconds(1))
         {
           progressCallback.Report(new ProgressReport(file.FullName, currentFile, numberOfFiles));

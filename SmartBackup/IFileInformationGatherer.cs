@@ -9,6 +9,6 @@ namespace Vibe.Hammer.SmartBackup
 {
   public interface IFileInformationGatherer
   {
-    Task<FileInformation> Gather(FileInfo file, DirectoryInfo root, bool deepScan);
+    FileInformation Gather(FileInfo file, DirectoryInfo root, bool deepScan);
   }
 }

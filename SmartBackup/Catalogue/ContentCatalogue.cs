@@ -362,7 +362,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return target;
     }
 
-    private BackupTarget GetBackupTargetForFile(FileInformation file)
+    private IBackupTarget GetBackupTargetForFile(FileInformation file)
     {
       foreach (var target in Targets)
       {
@@ -372,7 +372,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return null;
     }
 
-    private BackupTarget GetBackupTargetContainingFile(FileInformation file)
+    private IBackupTarget GetBackupTargetContainingFile(FileInformation file)
     {
       return Targets.FirstOrDefault(t => t.KeySearchContent.ContainsKey(file.FullyQualifiedFilename)).BackupTarget;
     }
@@ -438,7 +438,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
       
     }
-    public BackupTarget GetBackupTargetFor(ContentCatalogueEntry entry)
+    public IBackupTarget GetBackupTargetFor(ContentCatalogueEntry entry)
     {
       foreach (var target in Targets)
       {

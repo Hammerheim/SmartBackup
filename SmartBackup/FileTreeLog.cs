@@ -19,62 +19,11 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    public void Log(FileInformation fileInformation)
+    public void Add(FileInformation fileInformation)
     {
       if (log.ContainsKey(fileInformation.FullyQualifiedFilename))
         throw new Exception($"Duplicate key in file logger. \r\nNew file is {fileInformation.FileName}\r\nExisting file is: {log[fileInformation.FullyQualifiedFilename].FileName}");
       log.Add(fileInformation.FullyQualifiedFilename, fileInformation);
-    }
-
-    public async Task Read(string logFile)
-    {
-      FileInfo fi = new FileInfo(logFile);
-      if (!fi.Exists)
-        return;
-
-      using (var stream = fi.OpenText())
-      {
-        var logWriterType = await stream.ReadLineAsync();
-        if (logWriterType == GetType().FullName)
-        {
-          do
-          {
-            var line = await stream.ReadLineAsync();
-            var item = new FileInformation(line);
-            log.Add(item.FullyQualifiedFilename, item);
-          } while (!stream.EndOfStream);
-        }
-      }
-    }
-
-    public async Task Save(string logFile)
-    {
-      FileInfo fi = new FileInfo(logFile);
-      if (fi.Exists)
-        fi.Delete();
-
-      try
-      {
-        using (var writer = fi.CreateText())
-        {
-          await writer.WriteLineAsync(GetType().FullName);
-          foreach (var id in log.Keys)
-          {
-            await writer.WriteLineAsync(log[id].ToString());
-          }
-        }
-
-      }
-      catch (Exception err)
-      {
-        Console.WriteLine(err.ToString());
-        throw;
-      }
-    }
-
-    public override string ToString()
-    {
-      return "Not much to say...";
     }
   }
 }
