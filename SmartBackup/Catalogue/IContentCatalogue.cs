@@ -11,13 +11,25 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
   public interface IContentCatalogue
   {
     ContentCatalogueEntry GetNewestVersion(FileInformation file);
+
+    ContentCatalogueEntry GetNewestVersion(string key);
+
+    ContentCatalogueEntry GetSpecificVersion(string key, int version);
+
     void Add(TargetContentCatalogue catalogue);
+
     Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern);
 
-    Task ExtractAll(DirectoryInfo extractionRoot, IProgress<ProgressReport> progressCallback);
     IEnumerable<ContentCatalogueBinaryEntry> GetAllContentEntriesWithoutHashes(IProgress<ProgressReport> progressCallback);
+
     IBackupTarget GetBackupTargetFor(ContentCatalogueEntry entry);
+
     bool IsKnownPrimaryHash(string primaryContentHash);
+
     IEnumerable<ContentCatalogueEntry> EnumerateContent();
+
+    List<string> GetUniqueFileKeys();
+
+    IBackupTarget GetBackupTargetContainingFile(FileInformation file);
   }
 }

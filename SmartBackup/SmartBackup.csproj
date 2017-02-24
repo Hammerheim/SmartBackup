@@ -53,7 +53,9 @@
     <Compile Include="Compression\DecompressionOfStreamFailedException.cs" />
     <Compile Include="Compression\FileCompressionAsArchiveFailedException.cs" />
     <Compile Include="Compression\FileCompressionAsStramFailedException.cs" />
+    <Compile Include="Extractor.cs" />
     <Compile Include="HasherBase.cs" />
+    <Compile Include="IExtractor.cs" />
     <Compile Include="ProgramAction.cs" />
     <Compile Include="Progress\ActionTypes.cs" />
     <Compile Include="Progress\ProgressReport.cs" />

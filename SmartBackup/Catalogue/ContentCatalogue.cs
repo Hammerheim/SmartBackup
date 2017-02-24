@@ -83,7 +83,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return new FileInfo(Path.Combine(TargetDirectory.FullName, $"{FilenamePattern}.ContentCatalogue.exe"));
     }
 
-    private ContentCatalogueEntry GetNewestVersion(string key)
+    public ContentCatalogueEntry GetNewestVersion(string key)
     {
       ContentCatalogueEntry newestItem = null;
       foreach (var catalogue in Targets)
@@ -102,7 +102,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return newestItem;
     }
 
-    private ContentCatalogueEntry GetSpecificVersion(string key, int version)
+    public ContentCatalogueEntry GetSpecificVersion(string key, int version)
     {
       foreach (var catalogue in Targets)
       {
@@ -264,95 +264,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       binaryHandler.WriteContentCatalogue(this, false);
     }
 
-    private async Task ExtractFile(string key, DirectoryInfo extractionRoot)
-    {
-      var item = GetNewestVersion(key);
-      if (item.Deleted)
-        return;
-
-      var linkItem = item as ContentCatalogueLinkEntry;
-      if (linkItem != null)
-      {
-        await ExtractLinkedFile(linkItem, extractionRoot);
-        return;
-      }
-
-      var binaryContentItem = item as ContentCatalogueBinaryEntry;
-      if (binaryContentItem == null)
-        throw new FileNotFoundException();
-
-      var backupTarget = GetBackupTargetContainingFile(item.SourceFileInfo);
-      if (backupTarget == null)
-        throw new FileNotFoundException();
-
-      await backupTarget.ExtractFile(binaryContentItem, extractionRoot);
-    }
-
-    private async Task ExtractFile(string key, int version, DirectoryInfo extractionRoot)
-    {
-      var item = GetSpecificVersion(key, version);
-      if (item.Deleted)
-        return;
-
-      var linkItem = item as ContentCatalogueLinkEntry;
-      if (linkItem != null)
-      {
-        await ExtractLinkedFile(linkItem, extractionRoot);
-        return;
-      }
-
-      var binaryContentItem = item as ContentCatalogueBinaryEntry;
-      if (binaryContentItem == null)
-        throw new FileNotFoundException();
-
-      var backupTarget = GetBackupTargetContainingFile(item.SourceFileInfo);
-      if (backupTarget == null)
-        throw new FileNotFoundException();
-      await backupTarget.ExtractFile(binaryContentItem, extractionRoot);
-    }
-
-    private async Task ExtractLinkedFile(ContentCatalogueLinkEntry link, DirectoryInfo extractionRoot)
-    {
-      var item = GetSpecificVersion(link.ContentCatalogueEntryKey, link.ContentCatalogueEntryVersion);
-
-      var newLinkItem = item as ContentCatalogueLinkEntry;
-      if (newLinkItem != null)
-      {
-        await ExtractLinkedFile(newLinkItem, extractionRoot);
-        return;
-      }
-
-      var binaryContentItem = item as ContentCatalogueBinaryEntry;
-      if (binaryContentItem == null)
-        throw new FileNotFoundException();
-
-      var backupTarget = GetBackupTargetContainingFile(item.SourceFileInfo);
-      if (backupTarget == null)
-        throw new FileNotFoundException();
-      await backupTarget.ExtractLinkedFile(binaryContentItem, link, extractionRoot);
-    }
-
-    public async Task ExtractAll(DirectoryInfo extractionRoot, IProgress<ProgressReport> progressCallback)
-    {
-      var keys = GetUniqueFileKeys();
-      var numberOfFiles = keys.Count;
-      var lastReport = DateTime.Now;
-      int fileNumber = 0;
-      
-      foreach (var key in keys)
-      {
-        await ExtractFile(key, extractionRoot);
-        if (DateTime.Now - lastReport > TimeSpan.FromSeconds(5))
-        {
-          var file = GetNewestVersion(key);
-          progressCallback.Report(new ProgressReport(file.SourceFileInfo.FileName, fileNumber, numberOfFiles));
-          lastReport = DateTime.Now;
-        }
-
-        fileNumber++;
-      }
-    }
-
     private BackupTarget CreateNewBackupTarget()
     {
       var target = new BackupTarget(new MD5Hasher(), new Sha256Hasher(), new CompressionHandler());
@@ -372,12 +283,12 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return null;
     }
 
-    private IBackupTarget GetBackupTargetContainingFile(FileInformation file)
+    public IBackupTarget GetBackupTargetContainingFile(FileInformation file)
     {
       return Targets.FirstOrDefault(t => t.KeySearchContent.ContainsKey(file.FullyQualifiedFilename)).BackupTarget;
     }
 
-    private List<string> GetUniqueFileKeys()
+    public List<string> GetUniqueFileKeys()
     {
       Dictionary<string, string> keys = new Dictionary<string, string>();
       List<string> returnThis = new List<string>();

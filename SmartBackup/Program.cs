@@ -112,7 +112,8 @@ namespace Vibe.Hammer.SmartBackup
 
       Console.WriteLine($"Extracting files from {source} to {target.FullName}");
       var callbackObject = new Callback();
-      await catalogue.ExtractAll(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      var extractor = new Extractor(catalogue);
+      await extractor.ExtractAll(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
     }
 
     private static async Task MainMaintenanceAsync(DirectoryInfo target, int fileSize, string filenamePattern)
