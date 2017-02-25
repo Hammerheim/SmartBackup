@@ -43,6 +43,11 @@ namespace Vibe.Hammer.SmartBackup
           arguments.FilenamePattern = BackupTargetConstants.DefaultBackupTargetName;
         }
 
+        if (arguments.ShouldExtract && arguments.ShouldMaintain)
+        {
+          Console.WriteLine("Unable to continue. You can only specify -extract or -maintain, not both at the same time");
+          return;
+        }
         if (arguments.ShouldBackup)
         {
           MainBackupAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB, arguments.FilenamePattern, arguments.Compress).Wait();

@@ -73,85 +73,73 @@ namespace Vibe.Hammer.SmartBackup
     public async Task ExtractFile(ContentCatalogueBinaryEntry file, DirectoryInfo extractionRoot)
     {
       var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, file.SourceFileInfo.RelativePath, file.SourceFileInfo.FileName));
-      if (targetFile.Exists && targetFile.LastWriteTime >= file.SourceFileInfo.LastModified)
-        return;
-
-      var tempFile = await binaryHandler.ExtractFile(file);
-      if (tempFile != null)
-      {
-        
-        targetFile.Directory.Create();
-        if (file.Compressed)
-        {
-          try
-          {
-            await compressionHandler.DecompressFile(tempFile, targetFile);
-          }
-          finally
-          {
-            tempFile.Delete();
-          }
-        }
-        else
-        {
-          if (targetFile.Exists)
-          {
-            if (targetFile.LastWriteTime < file.SourceFileInfo.LastModified)
-            {
-              var lastWriteTime = targetFile.LastWriteTime;
-              var movedFile = new FileInfo(targetFile.FullName + ".tmp");
-              File.Move(targetFile.FullName, movedFile.FullName);
-              try
-              {
-                GC.WaitForPendingFinalizers();
-                File.Move(tempFile.FullName, targetFile.FullName);
-              }
-              catch 
-              {
-                movedFile.MoveTo(targetFile.FullName);
-                File.SetLastWriteTime(targetFile.FullName, lastWriteTime);
-                return;
-              }
-              finally
-              {
-                File.Delete(movedFile.FullName);
-              }
-            }
-          }
-          else
-            tempFile.MoveTo(targetFile.FullName);
-
-        }
-        File.SetLastWriteTime(targetFile.FullName, file.SourceFileInfo.LastModified);
-        GC.WaitForPendingFinalizers();
-      }
+      await ExtractFile(file, targetFile, file.SourceFileInfo.LastModified);
     }
 
     public async Task ExtractLinkedFile(ContentCatalogueBinaryEntry binaryFile, ContentCatalogueLinkEntry linkFile, DirectoryInfo extractionRoot)
     {
-      var tempFile = await binaryHandler.ExtractFile(binaryFile);
-      if (tempFile != null)
+      var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, linkFile.SourceFileInfo.RelativePath, linkFile.SourceFileInfo.FileName));
+      await ExtractFile(binaryFile, targetFile, linkFile.SourceFileInfo.LastModified);
+    }
+
+    private async Task ExtractFile(ContentCatalogueBinaryEntry binaryToExtract, FileInfo targetFile, DateTime originalWriteTime)
+    {
+      if (targetFile.Exists && targetFile.LastWriteTime >= originalWriteTime)
+        return;
+
+      var extractedFile = await binaryHandler.ExtractFile(binaryToExtract);
+      if (extractedFile != null)
       {
-        var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, linkFile.SourceFileInfo.RelativePath, linkFile.SourceFileInfo.FileName));
         targetFile.Directory.Create();
-        if (binaryFile.Compressed)
+        if (binaryToExtract.Compressed)
         {
           try
           {
-            await compressionHandler.DecompressFile(tempFile, targetFile);
+            SafeOverwriteFile(extractedFile, targetFile, originalWriteTime, () => compressionHandler.DecompressFile(extractedFile, targetFile));
           }
           finally
           {
-            tempFile.Delete();
+            extractedFile.Delete();
           }
         }
         else
-          tempFile.MoveTo(targetFile.FullName);
-        File.SetLastWriteTime(targetFile.FullName, linkFile.SourceFileInfo.LastModified);
+        {
+          SafeOverwriteFile(extractedFile, targetFile, originalWriteTime, () => File.Move(extractedFile.FullName, targetFile.FullName));
+        }
+        File.SetLastWriteTime(targetFile.FullName, originalWriteTime);
         GC.WaitForPendingFinalizers();
       }
     }
 
+    private void SafeOverwriteFile(FileInfo sourceFile, FileInfo targetFile, DateTime originalWriteTime, Action performMoveAction)
+    {
+      if (targetFile.Exists)
+      {
+        if (targetFile.LastWriteTime < originalWriteTime)
+        {
+          var lastWriteTime = targetFile.LastWriteTime;
+          var movedFile = new FileInfo(targetFile.FullName + ".tmp");
+          File.Move(targetFile.FullName, movedFile.FullName);
+          try
+          {
+            GC.WaitForPendingFinalizers();
+            performMoveAction();
+          }
+          catch
+          {
+            movedFile.MoveTo(targetFile.FullName);
+            File.SetLastWriteTime(targetFile.FullName, lastWriteTime);
+            return;
+          }
+          finally
+          {
+            File.Delete(movedFile.FullName);
+          }
+        }
+      }
+      else
+        sourceFile.MoveTo(targetFile.FullName);
+    }
 
     public async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry)
     {
