@@ -36,7 +36,7 @@ namespace Vibe.Hammer.SmartBackup.Target
       GC.WaitForPendingFinalizers();
     }
 
-    public virtual ContentCatalogue ReadContentCatalogue()
+    public virtual async Task<ContentCatalogue> ReadContentCatalogue()
     {
       if (!TargetFile.Exists)
         return null;
@@ -48,7 +48,7 @@ namespace Vibe.Hammer.SmartBackup.Target
         XmlSerializer serializer = new XmlSerializer(typeof(ContentCatalogue));
         using (var fs = new FileStream(TargetFile.FullName, FileMode.Open))
         {
-          catalogue = serializer.Deserialize(fs) as ContentCatalogue;
+          catalogue = await Task.Run(() => serializer.Deserialize(fs) as ContentCatalogue);
         }
       }
       else

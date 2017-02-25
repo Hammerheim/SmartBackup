@@ -162,7 +162,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       {
         binaryHandler = new ContentCatalogueBinaryHandler(GetContentCatalogueFilename(), new CompressionHandler());
       }
-      var tempCatalogue = binaryHandler.ReadContentCatalogue();
+      var tempCatalogue = await binaryHandler.ReadContentCatalogue();
       if (tempCatalogue != null)
       {
         Targets = tempCatalogue.Targets;
