@@ -22,11 +22,10 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       KeySearchContent = new Dictionary<string, List<ContentCatalogueEntry>>();
     }
 
-    public TargetContentCatalogue(int backupTargetIndex, BackupTarget target)
+    public TargetContentCatalogue(int backupTargetIndex)
       : this()
     {
       BackupTargetIndex = backupTargetIndex;
-      BackupTarget = target;
     }
 
     [XmlAttribute("bti")]
@@ -52,9 +51,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     [XmlIgnore]
     public Dictionary<string, List<ContentCatalogueEntry>> KeySearchContent { get; private set; }
 
-    [XmlIgnore]
-    public IBackupTarget BackupTarget { get; set; }
-
     public void RebuildSearchIndex()
     {
       KeySearchContent = new Dictionary<string, List<ContentCatalogueEntry>>();
@@ -78,11 +74,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       Remove(toBeReplaced);
       Add(replaceWithThis);
-    }
-
-    internal async Task<bool> Defragment(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback)
-    {
-      return await BackupTarget.Defragment(binariesToMove, progressCallback);
     }
 
     public long CalculateTail()

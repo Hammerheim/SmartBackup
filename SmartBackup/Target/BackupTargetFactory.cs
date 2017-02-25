@@ -14,23 +14,43 @@ namespace Vibe.Hammer.SmartBackup.Target
     private static Dictionary<int, IBackupTarget> targets = new Dictionary<int, IBackupTarget>();
     private static int filesize;
     private static DirectoryInfo targetDirectory;
-    private static string filenamePattern;
+    private static string pattern;
 
-    public static IBackupTarget GetTarget(TargetContentCatalogue targetCatalogue, int fileSizeInMB, DirectoryInfo backupDirectory, string filenamePattern)
+    public static IBackupTarget CreateTarget(int id, long tail, int fileSizeInMB, DirectoryInfo backupDirectory, string filenamePattern)
     {
+      filesize = fileSizeInMB;
+      targetDirectory = backupDirectory;
+      pattern = filenamePattern;
 
-      if (IsCached(targetCatalogue.BackupTargetIndex))
-        return targets[targetCatalogue.BackupTargetIndex];
+      return GetOrCreate(id, tail);
+    }
+
+    private static IBackupTarget GetOrCreate(int id, long tail)
+    {
+      if (IsCached(id))
+        return targets[id];
 
       var target = new BackupTarget(new MD5Hasher(), new Sha256Hasher(), new CompressionHandler());
-      target.Initialize(fileSizeInMB, backupDirectory, targetCatalogue.BackupTargetIndex, targetCatalogue.CalculateTail(), filenamePattern);
-      targets.Add(targetCatalogue.BackupTargetIndex, target);
+      target.Initialize(filesize, targetDirectory, id, tail, pattern);
+      targets.Add(id, target);
       return target;
+    }
+
+    public static IBackupTarget GetCachedTarget(int id)
+    {
+      if (IsCached(id))
+        return targets[id];
+      return null;
     }
 
     private static bool IsCached(int backupTargetIndex)
     {
       return targets.ContainsKey(backupTargetIndex);
+    }
+
+    private static void ClearCache()
+    {
+      targets.Clear();
     }
   }
 }

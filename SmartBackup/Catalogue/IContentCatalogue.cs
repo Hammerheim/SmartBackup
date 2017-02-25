@@ -20,8 +20,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern);
 
-    IEnumerable<ContentCatalogueBinaryEntry> GetAllContentEntriesWithoutHashes(IProgress<ProgressReport> progressCallback);
-
     IBackupTarget GetBackupTargetFor(ContentCatalogueEntry entry);
 
     bool IsKnownPrimaryHash(string primaryContentHash);

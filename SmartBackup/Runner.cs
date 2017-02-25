@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Vibe.Hammer.SmartBackup.Catalogue;
 using Vibe.Hammer.SmartBackup.Progress;
+using Vibe.Hammer.SmartBackup.Target;
 
 namespace Vibe.Hammer.SmartBackup
 {
@@ -170,31 +171,6 @@ namespace Vibe.Hammer.SmartBackup
         currentFile++;
         ReportProgress(progressCallback, $"Primary hashes created: {primaryHashCount}. Secondary hashes created: {secondaryHashCount}");
       }
-
-      //var allContentWithoutHashes = catalogue.GetAllContentEntriesWithoutHashes(progressCallback);
-      //if (!allContentWithoutHashes.Any())
-      //{
-      //  progressCallback.Report(new ProgressReport("All files are already hashed."));
-      //  return true;
-      //}
-      //maxNumberOfFiles = allContentWithoutHashes.Count();
-      //lastProgressReport = DateTime.Now;
-
-      //progressCallback.Report(new ProgressReport("Scanning for missing file hashes..."));
-      //foreach (var contentItem in allContentWithoutHashes)
-      //{
-      //  var backupTarget = catalogue.GetBackupTargetFor(contentItem);
-      //  var hashes = await backupTarget.CalculateHashes(contentItem);
-      //  if (hashes != null)
-      //  {
-      //    contentItem.PrimaryContentHash = hashes.PrimaryHash;
-      //    contentItem.SecondaryContentHash = hashes.SecondaryHash;
-      //    catalogue.AddContentHash(hashes.PrimaryHash, contentItem);
-      //  }
-
-      //  currentFile++;
-      //  ReportProgress(progressCallback, contentItem.SourceFileInfo);
-      //}
       catalogue.WriteCatalogue();
       catalogue.CloseTargets();
       await Task.Delay(500);
@@ -303,10 +279,10 @@ namespace Vibe.Hammer.SmartBackup
       {
         currentFile++;
         var entries = catalogue.Targets[target.BackupTargetIndex].Content.OfType<ContentCatalogueBinaryEntry>().ToList();
-        if (await target.Defragment(entries, progressCallback))
+        var binaryTarget = BackupTargetFactory.CreateTarget(target.BackupTargetIndex, target.CalculateTail(), fileSize, targetRoot, filenamePattern);
+        if (await binaryTarget.Defragment(entries, progressCallback))
         {
           ConvertAllUnclaimedLinksToClaimedLinks(target.BackupTargetIndex);
-          //await target.ReclaimSpace(progressCallback);
         }
       }
       catalogue.WriteCatalogue();
@@ -320,11 +296,6 @@ namespace Vibe.Hammer.SmartBackup
       {
         catalogue.Targets[id].ReplaceContent(unclaimedLink, new ContentCatalogueLinkEntry(unclaimedLink));
       }
-    }
-
-    private async Task ReclaimPhysicalSpace(TargetContentCatalogue catalogue, IProgress<ProgressReport> progressCallback)
-    {
-      await catalogue.BackupTarget.Defragment(new List<ContentCatalogueBinaryEntry>(), progressCallback);
     }
   }
 }
