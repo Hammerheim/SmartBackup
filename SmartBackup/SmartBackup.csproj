@@ -62,6 +62,7 @@
     <Compile Include="Sha256Hasher.cs" />
     <Compile Include="Target\AddFileToArchiveException.cs" />
     <Compile Include="Target\BackupTarget.cs" />
+    <Compile Include="Target\BackupTargetFactory.cs" />
     <Compile Include="Target\BinaryHandler.cs" />
     <Compile Include="Catalogue\ContentCatalogueEntry.cs" />
     <Compile Include="Target\BackupTargetConstants.cs" />

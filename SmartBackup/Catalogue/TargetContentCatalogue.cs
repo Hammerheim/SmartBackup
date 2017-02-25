@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Vibe.Hammer.SmartBackup.Progress;
+using Vibe.Hammer.SmartBackup.Target;
 
 namespace Vibe.Hammer.SmartBackup.Catalogue
 {
@@ -82,6 +83,17 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     internal async Task<bool> Defragment(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback)
     {
       return await BackupTarget.Defragment(binariesToMove, progressCallback);
+    }
+
+    public long CalculateTail()
+    {
+      long calculatedTail = 0;
+      var entries = Content.OfType<ContentCatalogueBinaryEntry>();
+      if (entries.Any())
+      {
+        calculatedTail = entries.Max(item => item.TargetOffset + item.TargetLength);
+      }
+      return Math.Max(calculatedTail, BackupTargetConstants.DataOffset);
     }
   }
 }
