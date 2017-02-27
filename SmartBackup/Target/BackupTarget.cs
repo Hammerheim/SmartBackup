@@ -253,6 +253,7 @@ namespace Vibe.Hammer.SmartBackup
       };
 
       var sourceFile = new FileInfo(file.FullyQualifiedFilename);
+      bool insertResult = false;
 
       var shouldCompress = compressionHandler.ShouldCompress(sourceFile);
       if (shouldCompress && compressIfPossible)
@@ -265,7 +266,7 @@ namespace Vibe.Hammer.SmartBackup
         {
           item.Compressed = true;
           item.TargetLength = GetFileSize(tempFile);
-          await InsertBinary(item, tempFile);
+          await InsertBinary(item, tempFile)
           GC.WaitForPendingFinalizers();
           tempFile.Delete();
         }
@@ -274,25 +275,24 @@ namespace Vibe.Hammer.SmartBackup
           // Note: Compression caused the file to expand. This would be caused by files that cannot be compressed, like very small files or encrypted files.
           item.Compressed = false;
           item.TargetLength = GetFileSize(sourceFile);
-          await InsertBinary(item, sourceFile);
+          insertResult = await InsertBinary(item, sourceFile);
           tempFile.Delete();
         }
       }
       else
       {
         item.TargetLength = GetFileSize(sourceFile);
-        await InsertBinary(item, sourceFile);
+        insertResult = await InsertBinary(item, sourceFile);
       }
-      return item;
+      return insertResult ? item : null;
     }
 
-    private async Task InsertBinary(ContentCatalogueBinaryEntry item, FileInfo sourceFile)
+    private async Task<bool> InsertBinary(ContentCatalogueBinaryEntry item, FileInfo sourceFile)
     {
       var success = await binaryHandler.InsertFile(item, sourceFile);
       if (success)
-      {
         tail = item.TargetOffset + item.TargetLength;
-      }
+      return success;
     }
 
     private long GetFileSize(FileInfo file)

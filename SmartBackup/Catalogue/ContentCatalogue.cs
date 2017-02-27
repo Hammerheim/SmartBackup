@@ -173,7 +173,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    public async Task InsertFile(FileInformation file, int version, bool compressIfPossible)
+    public async Task<bool> InsertFile(FileInformation file, int version, bool compressIfPossible)
     {
       var backupTarget = GetBackupTargetForFile(file);
       if (backupTarget == null)
@@ -181,7 +181,12 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         backupTarget = CreateNewBackupTarget();
       }
       var entry = await backupTarget.AddFile(file, version, compressIfPossible);
-      SearchTargets[backupTarget.TargetId].Add(entry);
+      if (entry != null)
+      {
+        SearchTargets[backupTarget.TargetId].Add(entry);
+        return true;
+      }
+      return false;
     }
 
     public void CloseTargets()
