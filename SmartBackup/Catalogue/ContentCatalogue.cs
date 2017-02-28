@@ -56,6 +56,14 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     [XmlIgnore]
     public Dictionary<int, TargetContentCatalogue> SearchTargets { get; private set; }
 
+    internal void AddItem(int targetId, ContentCatalogueBinaryEntry catalogueItem)
+    {
+      if (SearchTargets.ContainsKey(targetId))
+      {
+        SearchTargets[targetId].Add(catalogueItem);
+      }
+    }
+
     [XmlIgnore]
     public Dictionary<string, List<ContentCatalogueBinaryEntry>> ContentHashes { get; private set; }
     [XmlIgnore]
@@ -118,14 +126,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return null;
     }
 
-    public bool IsKnownPrimaryHash(string primaryContentHash)
-    {
-      if (ContentHashes == null || !ContentHashes.Any())
-        BuildContentHashesDictionary();
-
-      return ContentHashes.ContainsKey(primaryContentHash);
-    }
-
     public void AddContentHash(string primaryContentHash, ContentCatalogueBinaryEntry entry)
     {
       if (string.IsNullOrEmpty(primaryContentHash))
@@ -171,22 +171,11 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         Version = tempCatalogue.Version;
         RebuildSearchIndex();
       }
-    }
 
-    public async Task<bool> InsertFile(FileInformation file, int version, bool compressIfPossible)
-    {
-      var backupTarget = GetBackupTargetForFile(file);
-      if (backupTarget == null)
+      foreach (var target in Targets)
       {
-        backupTarget = CreateNewBackupTarget();
+        BackupTargetFactory.InitializeTarget(target.BackupTargetIndex, target.CalculateTail(), MaxSizeOfFiles, backupDirectory, filenamePattern);
       }
-      var entry = await backupTarget.AddFile(file, version, compressIfPossible);
-      if (entry != null)
-      {
-        SearchTargets[backupTarget.TargetId].Add(entry);
-        return true;
-      }
-      return false;
     }
 
     public void CloseTargets()
@@ -202,25 +191,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     public void WriteCatalogue()
     {
       binaryHandler.WriteContentCatalogue(this, false);
-    }
-
-    private IBackupTarget CreateNewBackupTarget()
-    {
-      var id = SearchTargets.Keys.Count == 0 ? 0 : SearchTargets.Keys.Max() + 1;
-      var target = new TargetContentCatalogue(id);
-      Add(target);
-      return BackupTargetFactory.CreateTarget(target.BackupTargetIndex, target.CalculateTail(), MaxSizeOfFiles, TargetDirectory, FilenamePattern);
-    }
-
-    private IBackupTarget GetBackupTargetForFile(FileInformation file)
-    {
-      foreach (var target in Targets)
-      {
-        var binaryTarget = BackupTargetFactory.GetCachedTarget(target.BackupTargetIndex);
-        if (binaryTarget != null && binaryTarget.CanContain(file))
-          return binaryTarget;
-      }
-      return null;
     }
 
     public IBackupTarget GetBackupTargetContainingFile(FileInformation file)
@@ -342,6 +312,29 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
           yield return entry;
         }
       }
+    }
+
+    public int AddBackupTarget()
+    {
+      var id = SearchTargets.Keys.Count == 0 ? 0 : SearchTargets.Keys.Max() + 1;
+      var target = new TargetContentCatalogue(id);
+      Add(target);
+      return id;
+    }
+
+    public bool TryFindBackupTargetWithRoom(long requiredSpace, out int id)
+    {
+      id = -1;
+      foreach (var target in Targets)
+      {
+        if ((MaxSizeOfFiles * BackupTargetConstants.MegaByte) - target.CalculateTail() >= requiredSpace)
+        {
+          id = target.BackupTargetIndex;
+          return true;
+        }
+      }
+      return false;
+      
     }
   }
 }

@@ -266,7 +266,7 @@ namespace Vibe.Hammer.SmartBackup
         {
           item.Compressed = true;
           item.TargetLength = GetFileSize(tempFile);
-          await InsertBinary(item, tempFile)
+          insertResult = await InsertBinary(item, tempFile);
           GC.WaitForPendingFinalizers();
           tempFile.Delete();
         }

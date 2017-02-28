@@ -16,6 +16,13 @@ namespace Vibe.Hammer.SmartBackup.Target
     private static DirectoryInfo targetDirectory;
     private static string pattern;
 
+    public static void InitializeTarget(int id, long tail, int fileSizeInMB, DirectoryInfo backupDirectory, string filenamePattern)
+    {
+      filesize = fileSizeInMB;
+      targetDirectory = backupDirectory;
+      pattern = filenamePattern;
+      GetOrCreate(id, tail);
+    }
     public static IBackupTarget CreateTarget(int id, long tail, int fileSizeInMB, DirectoryInfo backupDirectory, string filenamePattern)
     {
       filesize = fileSizeInMB;

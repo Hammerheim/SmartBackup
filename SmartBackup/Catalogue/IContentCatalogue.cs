@@ -22,12 +22,13 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     IBackupTarget GetBackupTargetFor(ContentCatalogueEntry entry);
 
-    bool IsKnownPrimaryHash(string primaryContentHash);
-
     IEnumerable<ContentCatalogueEntry> EnumerateContent();
 
     List<string> GetUniqueFileKeys();
 
     IBackupTarget GetBackupTargetContainingFile(FileInformation file);
+    int AddBackupTarget();
+    bool TryFindBackupTargetWithRoom(long requiredSpace, out int id);
+    void AddContentHash(string primaryContentHash, ContentCatalogueBinaryEntry entry);
   }
 }

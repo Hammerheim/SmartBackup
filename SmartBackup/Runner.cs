@@ -28,12 +28,44 @@ namespace Vibe.Hammer.SmartBackup
     }
     public async Task<bool> Backup(IFileLog log, DirectoryInfo targetRoot, int fileSize, string filenamePattern, bool compressIfPossible, IProgress<ProgressReport> progressCallback)
     {
-      currentFile = 0;
+      var errors = new List<FileInformation>();
+
       progressCallback.Report(new ProgressReport("Starting backup"));
       progressCallback.Report(new ProgressReport("Reading existing content catalogues if any..."));
       await InitializeContentCatalogue(targetRoot, fileSize, filenamePattern, progressCallback);
 
       progressCallback.Report(new ProgressReport("Performing backup..."));
+      await ExecuteBackup(log, fileSize, targetRoot, filenamePattern, compressIfPossible, progressCallback, errors);
+
+      if (errors.Any())
+      {
+        progressCallback.Report(new ProgressReport($"Encountered errors in {errors.Count()} files. Retrying"));
+        log = new FileTreeLog();
+        foreach (var item in errors)
+        {
+          log.Add(item);
+        }
+        errors = new List<FileInformation>();
+        await ExecuteBackup(log, fileSize, targetRoot, filenamePattern, compressIfPossible, progressCallback, errors);
+        if (errors.Any())
+        {
+          foreach (var item in errors)
+          {
+            progressCallback.Report(new ProgressReport($"Unable to backup file {item.FullyQualifiedFilename}"));
+          }
+        }
+      }
+
+      catalogue.WriteCatalogue();
+      catalogue.CloseTargets();
+      await Task.Delay(500);
+      progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
+      return true;
+    }
+
+    private async Task ExecuteBackup(IFileLog log, int fileSize, DirectoryInfo targetRoot, string filenamePattern, bool compressIfPossible, IProgress<ProgressReport> progressCallback, List<FileInformation> errors)
+    {
+      currentFile = 0;
       lastProgressReport = DateTime.Now;
       maxNumberOfFiles = log.Files.Count();
       foreach (var file in log.Files)
@@ -41,28 +73,57 @@ namespace Vibe.Hammer.SmartBackup
         currentFile++;
         ReportProgress(progressCallback, file);
         var currentVersion = catalogue.GetNewestVersion(file);
+
         if (currentVersion == null)
-          await catalogue.InsertFile(file, 1, compressIfPossible);
+        {
+          var target = GetOrCreateBackupTarget(fileSize, targetRoot, filenamePattern, file);
+          await AddFileToTargetAndCatalogue(compressIfPossible, errors, file, target, 1);
+        }
         else
         {
           if (currentVersion.SourceFileInfo.LastModified < file.LastModified)
           {
-            await catalogue.InsertFile(file, currentVersion.Version + 1, compressIfPossible);
-          } 
+            var target = GetOrCreateBackupTarget(fileSize, targetRoot, filenamePattern, file);
+            await AddFileToTargetAndCatalogue(compressIfPossible, errors, file, target, currentVersion.Version + 1);
+          }
           else if (currentVersion.SourceFileInfo.LastModified == file.LastModified && currentVersion.Deleted)
           {
             // The deleted file has likely been restored, but there is a slight posibility that it is not the same file. Therefore the file is reinserted. 
             // If the binaries are the same, a maintenance run will convert one of them to a link and reclaim the space. This is the safe option rather than 
             // just setting the currentVersion.Deleted = false.
-            await catalogue.InsertFile(file, currentVersion.Version + 1, compressIfPossible);
+            var target = GetOrCreateBackupTarget(fileSize, targetRoot, filenamePattern, file);
+            await AddFileToTargetAndCatalogue(compressIfPossible, errors, file, target, currentVersion.Version + 1);
           }
         }
       }
-      catalogue.WriteCatalogue();
-      catalogue.CloseTargets();
-      await Task.Delay(500);
-      progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
-      return true;
+    }
+
+    private IBackupTarget GetOrCreateBackupTarget(int maxFileSize, DirectoryInfo targetRoot, string filenamePattern, FileInformation file)
+    {
+      int targetId;
+      IBackupTarget target;
+      if (!catalogue.TryFindBackupTargetWithRoom(file.Size, out targetId))
+      {
+        targetId = catalogue.AddBackupTarget();
+        target = BackupTargetFactory.CreateTarget(targetId, 0, maxFileSize, targetRoot, filenamePattern);
+      }
+      else
+      {
+        target = BackupTargetFactory.GetCachedTarget(targetId);
+      }
+
+      return target;
+    }
+
+    private async Task AddFileToTargetAndCatalogue(bool compressIfPossible, List<FileInformation> errors, FileInformation file, IBackupTarget target, int version)
+    {
+      var catalogueItem = await target.AddFile(file, version, compressIfPossible);
+      if (catalogueItem != null)
+        catalogue.AddItem(target.TargetId, catalogueItem);
+      else
+      {
+        errors.Add(file);
+      }
     }
 
     public async Task<bool> IdentifyDeletedFiles(DirectoryInfo targetRoot, int fileSize, string filenamePattern, IProgress<ProgressReport> progressCallback)
