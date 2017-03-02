@@ -154,8 +154,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       this.MaxSizeOfFiles = expectedMaxSizeInMegaBytes;
       this.FilenamePattern = filenamePattern;
 
+      backupDirectory.Refresh();
       if (!backupDirectory.Exists)
-        return;
+        backupDirectory.Create();
 
       TargetDirectory = backupDirectory;
       if (binaryHandler == null)

@@ -25,7 +25,14 @@ namespace Vibe.Hammer.SmartBackup
 
     protected FileInfo TargetFile { get; private set; }
 
-    public bool BinaryFileExists => TargetFile.Exists;
+    public bool BinaryFileExists
+    {
+      get
+      {
+        TargetFile.Refresh();
+        return TargetFile.Exists;
+      }
+    }
 
     public BinaryHandler(FileInfo targetFile, ICompressionHandler compressionHandler)
     {
@@ -40,6 +47,7 @@ namespace Vibe.Hammer.SmartBackup
 
     public virtual async Task<bool> InsertFile(ContentCatalogueBinaryEntry file, FileInfo sourceFile)
     {
+      sourceFile.Refresh();
       if (!sourceFile.Exists)
         throw new FileNotFoundException(sourceFile.FullName);
 
@@ -134,8 +142,7 @@ namespace Vibe.Hammer.SmartBackup
     protected bool IsTargetLocked()
     {
       FileStream stream = null;
-
-      if (!TargetFile.Exists)
+      if (!BinaryFileExists)
       {
         TargetFile.Create().Close();
         GC.WaitForPendingFinalizers();

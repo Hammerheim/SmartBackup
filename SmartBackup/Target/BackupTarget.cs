@@ -63,6 +63,7 @@ namespace Vibe.Hammer.SmartBackup
       ID = id;
       this.maxLength = maxLengthInMegaBytes * BackupTargetConstants.MegaByte;
       filename = Path.Combine(backupDirectory.FullName, $"{filenamePattern}.{id}.exe");
+      backupDirectory.Refresh();
       if (!backupDirectory.Exists)
         backupDirectory.Create();
       binaryHandler = new BinaryHandler(new FileInfo(filename), compressionHandler);
@@ -84,6 +85,7 @@ namespace Vibe.Hammer.SmartBackup
 
     private async Task ExtractFile(ContentCatalogueBinaryEntry binaryToExtract, FileInfo targetFile, DateTime originalWriteTime)
     {
+      targetFile.Refresh();
       if (targetFile.Exists && targetFile.LastWriteTime >= originalWriteTime)
         return;
 
@@ -113,6 +115,7 @@ namespace Vibe.Hammer.SmartBackup
 
     private void SafeOverwriteFile(FileInfo sourceFile, FileInfo targetFile, DateTime originalWriteTime, Action performMoveAction)
     {
+      targetFile.Refresh();
       if (targetFile.Exists)
       {
         if (targetFile.LastWriteTime < originalWriteTime)
@@ -145,6 +148,7 @@ namespace Vibe.Hammer.SmartBackup
     {
       var tempFile = await binaryHandler.ExtractFile(entry);
 
+      tempFile.Refresh();
       if (tempFile.Exists)
       {
         try

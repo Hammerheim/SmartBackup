@@ -38,7 +38,7 @@ namespace Vibe.Hammer.SmartBackup.Target
 
     public virtual async Task<ContentCatalogue> ReadContentCatalogue()
     {
-      if (!TargetFile.Exists)
+      if (!BinaryFileExists)
         return null;
 
       ContentCatalogue catalogue = null;
