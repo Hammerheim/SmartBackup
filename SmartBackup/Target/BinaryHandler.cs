@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Vibe.Hammer.SmartBackup.Catalogue;
@@ -58,7 +59,10 @@ namespace Vibe.Hammer.SmartBackup
           targetStream.Seek(file.TargetOffset, SeekOrigin.Begin);
           using (var sourceStream = File.OpenRead(sourceFile.FullName))
           {
-            await sourceStream.CopyToAsync(targetStream);
+            var task = sourceStream.CopyToAsync(targetStream);
+            await task;
+            if (task.IsCanceled || task.IsFaulted)
+              return false;
           }
           return true;
         }

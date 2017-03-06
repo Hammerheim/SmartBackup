@@ -24,6 +24,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     [XmlAttribute("sch")]
     public string SecondaryContentHash { get; set; }
+    [XmlAttribute("vf")]
+    public bool Verified { get; set; }
 
   }
 }
