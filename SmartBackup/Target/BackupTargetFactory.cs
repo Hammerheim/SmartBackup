@@ -37,7 +37,7 @@ namespace Vibe.Hammer.SmartBackup.Target
       if (IsCached(id))
         return targets[id];
 
-      var target = new BackupTarget(new MD5Hasher(), new Sha256Hasher(), new CompressionHandler());
+      var target = new BackupTarget(new Sha256Hasher(), new CompressionHandler());
       target.Initialize(filesize, targetDirectory, id, tail, pattern);
       targets.Add(id, target);
       return target;

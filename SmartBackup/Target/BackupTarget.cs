@@ -22,14 +22,12 @@ namespace Vibe.Hammer.SmartBackup
     private string filename;
     private ICompressionHandler compressionHandler;
     private IHasher primaryHasher;
-    private IHasher secondaryHasher;
     private bool Initialized = false;
     private int ID;
 
-    public BackupTarget(IHasher primaryHasher, IHasher secondaryHasher, ICompressionHandler compressionHandler)
+    public BackupTarget(IHasher primaryHasher, ICompressionHandler compressionHandler)
     {
       this.primaryHasher = primaryHasher;
-      this.secondaryHasher = secondaryHasher;
       this.compressionHandler = compressionHandler;
     }
     public long Tail
@@ -163,22 +161,19 @@ namespace Vibe.Hammer.SmartBackup
       return string.Empty;
     }
 
-    public async Task<string> CalculateSecondaryHash(ContentCatalogueBinaryEntry entry)
+    public async Task<bool> VerifyContent(ContentCatalogueBinaryEntry entry)
     {
-      var tempFile = await binaryHandler.ExtractFile(entry);
+      entry.PrimaryContentHash = await CalculatePrimaryHash(entry);
 
-      if (tempFile.Exists)
+      var originalFile = new FileInfo(entry.SourceFileInfo.FullyQualifiedFilename);
+      originalFile.Refresh();
+      if (originalFile.LastWriteTime == entry.SourceFileInfo.LastModified)
       {
-        try
-        {
-          return await secondaryHasher.GetHashString(tempFile);
-        }
-        finally
-        {
-          tempFile.Delete();
-        }
+        var originalHash = await primaryHasher.GetHashString(originalFile);
+        if (entry.PrimaryContentHash == originalHash)
+          return true;
       }
-      return string.Empty;
+      return false;
     }
 
     public async Task<bool> Defragment(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback)

@@ -13,7 +13,7 @@ namespace Vibe.Hammer.SmartBackup
 {
   public class Runner : IRunner
   {
-    private IFileInformationGatherer gatherer = new FileInformationGatherer(new MD5Hasher());
+    private IFileInformationGatherer gatherer = new FileInformationGatherer(new Sha256Hasher());
     private int currentFile;
     private int maxNumberOfFiles;
     private DateTime lastProgressReport;
@@ -120,7 +120,10 @@ namespace Vibe.Hammer.SmartBackup
     {
       var catalogueItem = await target.AddFile(file, version, compressIfPossible);
       if (catalogueItem != null)
+      {
         catalogue.AddItem(target.TargetId, catalogueItem);
+        catalogueItem.Verified = await target.VerifyContent(catalogueItem);
+      }
       else
       {
         errors.Add(file);
@@ -182,7 +185,7 @@ namespace Vibe.Hammer.SmartBackup
     {
       var logger = new FileTreeLog();
       var recurser = new DirectoryRecurser();
-      var result = await recurser.RecurseDirectory(sourceRoot, new SimpleFileHandler(new FileInformationGatherer(new MD5Hasher()), logger), false, progressCallback);
+      var result = await recurser.RecurseDirectory(sourceRoot, new SimpleFileHandler(new FileInformationGatherer(new Sha256Hasher()), logger), false, progressCallback);
       if (result)
       {
         return logger;
@@ -199,40 +202,21 @@ namespace Vibe.Hammer.SmartBackup
       lastProgressReport = DateTime.Now;
       maxNumberOfFiles = catalogue.ContentLengths.Count();
       progressCallback.Report(new ProgressReport("Scanning for missing file hashes..."));
-      long primaryHashCount = 0;
-      long secondaryHashCount = 0;
-      foreach (var key in catalogue.ContentLengths.Keys)
+      foreach (var entry in catalogue.EnumerateContent()) //entryList.Where(x => string.IsNullOrWhiteSpace(x.PrimaryContentHash)))
       {
-        var entryList = catalogue.ContentLengths[key];
-        if (entryList.Count > 1)
-        {
-          foreach (var entry in entryList.Where(x => string.IsNullOrWhiteSpace(x.PrimaryContentHash)))
-          {
-            primaryHashCount++;
-            var backupTarget = catalogue.GetBackupTargetFor(entry);
-            entry.PrimaryContentHash = await backupTarget.CalculatePrimaryHash(entry);
-            ReportProgress(progressCallback, $"Primary hashes created: {primaryHashCount}. Secondary hashes created: {secondaryHashCount}");
-            if (catalogue.ContentHashes.ContainsKey(entry.PrimaryContentHash))
-            {
-              entry.SecondaryContentHash = await backupTarget.CalculateSecondaryHash(entry);
-              secondaryHashCount++;
-              foreach (var newDuplicate in catalogue.ContentHashes[entry.PrimaryContentHash])
-              {
-                if (string.IsNullOrEmpty(newDuplicate.SecondaryContentHash))
-                {
-                  var secondaryBackupTarget = catalogue.GetBackupTargetFor(newDuplicate);
-                  newDuplicate.SecondaryContentHash = await secondaryBackupTarget.CalculateSecondaryHash(newDuplicate);
-                  secondaryHashCount++;
-                  ReportProgress(progressCallback, $"Primary hashes created: {primaryHashCount}. Secondary hashes created: {secondaryHashCount}");
-                }
-              }
-            }
-            catalogue.AddContentHash(entry.PrimaryContentHash, entry);
-          }
-        }
         currentFile++;
-        ReportProgress(progressCallback, $"Primary hashes created: {primaryHashCount}. Secondary hashes created: {secondaryHashCount}");
+        var binaryEntry = entry as ContentCatalogueBinaryEntry;
+        if (binaryEntry == null)
+          continue;
+        if (!binaryEntry.Verified)
+        {
+          var backupTarget = catalogue.GetBackupTargetFor(entry);
+          ReportProgress(progressCallback, $"Verifying: {binaryEntry.SourceFileInfo.FileName}");
+          binaryEntry.Verified = await backupTarget.VerifyContent(binaryEntry);
+        }
       }
+      currentFile++;
+      ReportProgress(progressCallback, $"Verification complete");
       catalogue.WriteCatalogue();
       catalogue.CloseTargets();
       await Task.Delay(500);
@@ -257,53 +241,22 @@ namespace Vibe.Hammer.SmartBackup
 
       foreach (var entryList in allPossibleDublicates)
       {
+
         currentFile++;
-        var groupBySecondaryHash = from entry in entryList
-                                   where !string.IsNullOrEmpty(entry.SecondaryContentHash)
-                                   group entry by entry.SecondaryContentHash into newGroup
-                                   orderby newGroup.Key
-                                   select newGroup;
-        foreach (var hashGroup in groupBySecondaryHash)
+        ContentCatalogueBinaryEntry primaryEntry = entryList.FirstOrDefault(x => x.Verified);
+        if (primaryEntry == null)
         {
-          ContentCatalogueBinaryEntry primaryEntry = null;
-          foreach (var groupEntry in hashGroup)
-          {
-            if (primaryEntry == null)
-            {
-              primaryEntry = groupEntry;
-              continue;
-            }
-
-            if (groupEntry.SecondaryContentHash == primaryEntry.SecondaryContentHash)
-            {
-              var link = new ContentCatalogueUnclaimedLinkEntry(groupEntry, primaryEntry);
-              catalogue.ReplaceBinaryEntryWithLink(groupEntry, link);
-            }
-
-            
-          }
-          ReportProgress(progressCallback, primaryEntry.SourceFileInfo);
+          continue;
         }
-        //foreach (var entry in entryList.GroupBy(x => x.SecondaryContentHash))
-        //{
-        //  foreach (var key in entry.)
-        //  {
-            
-        //  }
-        //  if (primaryEntry == null)
-        //  {
-        //    primaryEntry = entry;
-        //    continue;
-        //  }
+        foreach (var entry in entryList)
+        {
+          if (primaryEntry.SourceFileInfo.FullyQualifiedFilename == entry.SourceFileInfo.FullyQualifiedFilename)
+            continue;
 
-        //  if (entry.SecondaryContentHash == primaryEntry.SecondaryContentHash)
-        //  {
-        //    var link = new ContentCatalogueUnclaimedLinkEntry(entry, primaryEntry);
-        //    catalogue.ReplaceBinaryEntryWithLink(entry, link);
-        //  }
-
-        //  ReportProgress(progressCallback, link.SourceFileInfo);
-        //}
+          var link = new ContentCatalogueUnclaimedLinkEntry(entry, primaryEntry);
+          catalogue.ReplaceBinaryEntryWithLink(entry, link);
+        }
+        ReportProgress(progressCallback, primaryEntry.SourceFileInfo);
       }
       catalogue.WriteCatalogue();
       catalogue.CloseTargets();
