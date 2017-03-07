@@ -176,9 +176,14 @@ namespace Vibe.Hammer.SmartBackup
       return false;
     }
 
-    public async Task<bool> Defragment(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback)
+    public async Task<bool> Defragment(List<ContentCatalogueEntry> content, IProgress<ProgressReport> progressCallback)
     {
-      var entries = binariesToMove.OrderBy(x => x.TargetOffset).ToArray();
+      var entries = content.OfType<ContentCatalogueBinaryEntry>().OrderBy(x => x.TargetOffset).ToArray();
+      if (entries.Length == content.Count)
+      {
+        progressCallback.Report(new ProgressReport($"{ID}: No defragmentation required"));
+        return true;
+      }
       var tempFile = new FileInfo(Path.GetTempFileName());
       var tempFilename = tempFile.FullName;
 
@@ -191,14 +196,18 @@ namespace Vibe.Hammer.SmartBackup
           for (int i = 0; i < entries.Length; i++)
           {
             var entry = entries[i];
-            if (await binaryHandler.CopyBytesToStreamAsync(outputStream, entry.TargetOffset, entry.TargetLength))
+            if (entry.TargetOffset == currentOffset)
+            {
+              currentOffset += entry.TargetLength;
+            }
+            else if (await binaryHandler.CopyBytesToStreamAsync(outputStream, entry.TargetOffset, entry.TargetLength))
             {
               currentOffset += entry.TargetLength;
             }
 
             if (DateTime.Now - time > TimeSpan.FromSeconds(5))
             {
-              progressCallback.Report(new ProgressReport($"Moving {i} of {entries.Length}", i, entries.Length));
+              progressCallback.Report(new ProgressReport($"{ID}: Moving {i} of {entries.Length} entries", i, entries.Length));
               time = DateTime.Now;
             }
           }
@@ -218,10 +227,10 @@ namespace Vibe.Hammer.SmartBackup
           }
           if (tail > currentOffset)
           {
-            progressCallback.Report(new ProgressReport($"Defragmentation left {(tail / (1024 * 1024)) - (currentOffset / (1024 * 1024))} MB available in the file"));
+            progressCallback.Report(new ProgressReport($"{ID}: Defragmentation released {(tail - currentOffset) / (1024 * 1024)} MB in the file"));
           }
           else
-            progressCallback.Report(new ProgressReport("No space was reclaimed"));
+            progressCallback.Report(new ProgressReport($"{ID}: No space was reclaimed"));
           tail = currentOffset;
         }
         return true;

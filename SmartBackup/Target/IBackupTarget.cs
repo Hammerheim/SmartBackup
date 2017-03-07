@@ -19,7 +19,7 @@ namespace Vibe.Hammer.SmartBackup
     Task<ContentCatalogueBinaryEntry> AddFile(FileInformation file, int version, bool compressIfPossible);
     void CloseStream();
     Task ExtractFile(ContentCatalogueBinaryEntry file, DirectoryInfo extractionRoot);
-    Task<bool> Defragment(List<ContentCatalogueBinaryEntry> binariesToMove, IProgress<ProgressReport> progressCallback);
+    Task<bool> Defragment(List<ContentCatalogueEntry> content, IProgress<ProgressReport> progressCallback);
     //Task<string> CalculateSecondaryHash(ContentCatalogueBinaryEntry entry);
     //Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry);
     Task ExtractLinkedFile(ContentCatalogueBinaryEntry binaryFile, ContentCatalogueLinkEntry linkFile, DirectoryInfo extractionRoot);

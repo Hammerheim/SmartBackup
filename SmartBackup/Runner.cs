@@ -293,9 +293,8 @@ namespace Vibe.Hammer.SmartBackup
       foreach (var target in catalogue.Targets)
       {
         currentFile++;
-        var entries = catalogue.Targets[target.BackupTargetIndex].Content.OfType<ContentCatalogueBinaryEntry>().ToList();
         var binaryTarget = BackupTargetFactory.CreateTarget(target.BackupTargetIndex, target.CalculateTail(), fileSize, targetRoot, filenamePattern);
-        if (await binaryTarget.Defragment(entries, progressCallback))
+        if (await binaryTarget.Defragment(target.Content, progressCallback))
         {
           ConvertAllUnclaimedLinksToClaimedLinks(target.BackupTargetIndex);
         }
