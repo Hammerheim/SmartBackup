@@ -21,6 +21,15 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     }
 
+    public ContentCatalogueEntry(ContentCatalogueEntry copyThis)
+    {
+      this.Version = copyThis.Version;
+      this.key = copyThis.key;
+      this.Deleted = copyThis.Deleted;
+      this.sourceFileInfo = copyThis.sourceFileInfo.Clone();
+
+    }
+
     [XmlElement("SFI")]
     public FileInformation SourceFileInfo
     {
@@ -49,5 +58,10 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     [XmlAttribute("d")]
     public bool Deleted { get; set; }
+
+    public virtual ContentCatalogueEntry Clone()
+    {
+      return new ContentCatalogueEntry(this);
+    }
   }
 }

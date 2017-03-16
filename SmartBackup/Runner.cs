@@ -294,9 +294,12 @@ namespace Vibe.Hammer.SmartBackup
       {
         currentFile++;
         var binaryTarget = BackupTargetFactory.CreateTarget(target.BackupTargetIndex, target.CalculateTail(), fileSize, targetRoot, filenamePattern);
-        if (await binaryTarget.Defragment(target.Content, progressCallback))
+        var clonedConent = target.CloneContent();
+        if (await binaryTarget.Defragment(clonedConent, progressCallback))
         {
+          target.PromoteClonedContent(clonedConent);
           ConvertAllUnclaimedLinksToClaimedLinks(target.BackupTargetIndex);
+          catalogue.WriteCatalogue();
         }
       }
       catalogue.WriteCatalogue();

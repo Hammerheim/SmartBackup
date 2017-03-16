@@ -23,9 +23,21 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       TargetOffset = linkFrom.TargetOffset;
     }
 
+    public ContentCatalogueUnclaimedLinkEntry(ContentCatalogueUnclaimedLinkEntry copyThis)
+      : base(copyThis)
+    {
+      this.TargetLength = copyThis.TargetLength;
+      this.TargetOffset = copyThis.TargetOffset;
+    }
+
     [XmlAttribute("to")]
     public long TargetOffset { get; set; }
     [XmlAttribute("tl")]
     public long TargetLength { get; set; }
+
+    public override ContentCatalogueEntry Clone()
+    {
+      return new ContentCatalogueUnclaimedLinkEntry(this);
+    }
   }
 }

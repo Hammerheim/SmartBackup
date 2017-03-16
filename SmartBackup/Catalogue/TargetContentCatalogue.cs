@@ -78,13 +78,65 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     public long CalculateTail()
     {
-      long calculatedTail = 0;
+      return Math.Max(CalculateBinaryTail(), CalculateUnclaimedLinkTail());
+    }
+
+    private long CalculateBinaryTail()
+    {
+      long tail = 0;
       var entries = Content.OfType<ContentCatalogueBinaryEntry>();
       if (entries.Any())
       {
-        calculatedTail = entries.Max(item => item.TargetOffset + item.TargetLength);
+        tail = entries.Max(item => item.TargetOffset + item.TargetLength);
       }
-      return Math.Max(calculatedTail, BackupTargetConstants.DataOffset);
+      return Math.Max(tail, BackupTargetConstants.DataOffset);
+    }
+
+    private long CalculateUnclaimedLinkTail()
+    {
+      long tail = 0;
+      var entries = Content.OfType<ContentCatalogueUnclaimedLinkEntry>();
+      if (entries.Any())
+      {
+        tail = entries.Max(item => item.TargetOffset + item.TargetLength);
+      }
+      return Math.Max(tail, BackupTargetConstants.DataOffset);
+    }
+
+    public virtual List<ContentCatalogueEntry> CloneContent()
+    {
+      var clone = new List<ContentCatalogueEntry>();
+      foreach (var item in Content)
+      {
+        clone.Add(item.Clone());
+      }
+      return clone;
+    }
+
+    public virtual void PromoteClonedContent(List<ContentCatalogueEntry> clonedContent)
+    {
+      foreach (var clonedItem in clonedContent)
+      {
+        if (KeySearchContent.ContainsKey(clonedItem.Key))
+        {
+          ContentCatalogueEntry original = null;
+          foreach (var possibleMatch in KeySearchContent[clonedItem.Key])
+          {
+            if (possibleMatch.Version == clonedItem.Version)
+            {
+              original = possibleMatch;
+              break;
+            }
+          }
+          if (original != null)
+          {
+            KeySearchContent[clonedItem.Key].Remove(original);
+            Content.Remove(original);
+            Content.Add(clonedItem);
+            KeySearchContent[clonedItem.Key].Add(clonedItem);
+          }
+        }
+      }
     }
   }
 }

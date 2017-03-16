@@ -23,6 +23,17 @@ namespace Vibe.Hammer.SmartBackup
       RelativePath = contentSections[5];
     }
 
+    public FileInformation(FileInformation copyThis)
+      : this()
+    {
+      Directory = copyThis.Directory;
+      FileName = copyThis.FileName;
+      Size = copyThis.Size;
+      LastModified = copyThis.LastModified;
+      FullyQualifiedFilename = copyThis.FullyQualifiedFilename;
+      RelativePath = copyThis.RelativePath;
+    }
+
     [XmlElement("FQF")]
     public string FullyQualifiedFilename { get; set; }
     [XmlElement("D")]
@@ -45,6 +56,11 @@ namespace Vibe.Hammer.SmartBackup
     public override string ToString()
     {
       return $"{Directory},{FileName},{Size},{LastModified.ToString("o")},{FullyQualifiedFilename},{RelativePath}";
+    }
+
+    public FileInformation Clone()
+    {
+      return new FileInformation(this);
     }
   }
 }

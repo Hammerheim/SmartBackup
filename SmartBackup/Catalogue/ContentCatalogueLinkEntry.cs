@@ -37,10 +37,22 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       Deleted = linkFrom.Deleted;
     }
 
+    public ContentCatalogueLinkEntry(ContentCatalogueLinkEntry copyThis)
+      : base(copyThis)
+    {
+      ContentCatalogueEntryKey = copyThis.Key;
+      ContentCatalogueEntryVersion = copyThis.Version;
+    }
+
     [XmlAttribute("ccek")]
     public string ContentCatalogueEntryKey { get; set; }
 
     [XmlAttribute("ccev")]
     public int ContentCatalogueEntryVersion { get; set; }
+
+    public override ContentCatalogueEntry Clone()
+    {
+      return new ContentCatalogueLinkEntry(this);
+    }
   }
 }

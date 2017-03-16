@@ -10,6 +10,21 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
   [XmlType("CCBE")]
   public class ContentCatalogueBinaryEntry : ContentCatalogueEntry
   {
+    public ContentCatalogueBinaryEntry()
+    {
+
+    }
+
+    public ContentCatalogueBinaryEntry(ContentCatalogueBinaryEntry copyThis)
+      : base(copyThis)
+    {
+      this.TargetOffset = copyThis.TargetOffset;
+      this.TargetLength = copyThis.TargetLength;
+      this.Compressed = copyThis.Compressed;
+      this.PrimaryContentHash = copyThis.PrimaryContentHash;
+      this.Verified = copyThis.Verified;
+    }
+
     [XmlAttribute("to")]
     public long TargetOffset { get; set; }
 
@@ -22,10 +37,12 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     [XmlAttribute("pch")]
     public string PrimaryContentHash { get; set; }
 
-    //[XmlAttribute("sch")]
-    //public string SecondaryContentHash { get; set; }
     [XmlAttribute("vf")]
     public bool Verified { get; set; }
 
+    public override ContentCatalogueEntry Clone()
+    {
+      return new ContentCatalogueBinaryEntry(this);
+    }
   }
 }

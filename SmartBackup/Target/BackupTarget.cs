@@ -144,7 +144,12 @@ namespace Vibe.Hammer.SmartBackup
 
     public async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry)
     {
-      var tempFile = await binaryHandler.ExtractFile(entry);
+      return await CalculatePrimaryHash(entry, binaryHandler);
+    }
+
+    private async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry, IBinaryHandler handler)
+    {
+      var tempFile = await handler.ExtractFile(entry);
 
       tempFile.Refresh();
       if (tempFile.Exists)
@@ -189,50 +194,35 @@ namespace Vibe.Hammer.SmartBackup
 
       try
       {
-        long currentOffset = BackupTargetConstants.DataOffset;
-        using (var outputStream = tempFile.Create())
+        progressCallback.Report(new ProgressReport("Defragmenting file"));
+        long newTail = await MoveBinariesToTempFile(entries, tempFile, progressCallback);
+        if (newTail < 0)
         {
-          var time = DateTime.Now;
-          for (int i = 0; i < entries.Length; i++)
-          {
-            var entry = entries[i];
-            if (entry.TargetOffset == currentOffset)
-            {
-              currentOffset += entry.TargetLength;
-            }
-            else if (await binaryHandler.CopyBytesToStreamAsync(outputStream, entry.TargetOffset, entry.TargetLength))
-            {
-              currentOffset += entry.TargetLength;
-            }
-
-            if (DateTime.Now - time > TimeSpan.FromSeconds(5))
-            {
-              progressCallback.Report(new ProgressReport($"{ID}: Moving {i} of {entries.Length} entries", i, entries.Length));
-              time = DateTime.Now;
-            }
-          }
-
-          binaryHandler.CloseStream();
+          progressCallback.Report(new ProgressReport("Failed to defragment file."));
+          return false;
         }
-        GC.WaitForPendingFinalizers();
-        await Task.Delay(500);
-        if (binaryHandler.SwapFiles(tempFile))
+
+        if (newTail == tail)
         {
-          for (int i = 0; i < entries.Length; i++)
-          {
-            if (i == 0)
-              entries[i].TargetOffset = 0;
-            else
-              entries[i].TargetOffset = entries[i - 1].TargetOffset + entries[i - 1].TargetLength;
-          }
-          if (tail > currentOffset)
-          {
-            progressCallback.Report(new ProgressReport($"{ID}: Defragmentation released {(tail - currentOffset) / (1024 * 1024)} MB in the file"));
-          }
-          else
-            progressCallback.Report(new ProgressReport($"{ID}: No space was reclaimed"));
-          tail = currentOffset;
+          progressCallback.Report(new ProgressReport($"{ID}: No defragmentation required"));
+          return true;
         }
+
+        await WaitForFileRelease();
+
+        progressCallback.Report(new ProgressReport("Validating defragmented file..."));
+
+        if (!await ValidateDefragmentedFile(tempFile, entries, progressCallback))
+          return false;
+
+        await WaitForFileRelease();
+
+        if (!binaryHandler.SwapFiles(tempFile))
+          return false;
+
+        ReportDefragmentationResult(progressCallback, newTail);
+
+        tail = newTail;
         return true;
       }
       catch (Exception err)
@@ -242,6 +232,110 @@ namespace Vibe.Hammer.SmartBackup
       finally
       {
         SafeDeleteTemporaryFile(tempFilename);
+      }
+    }
+
+    private async Task<bool> ValidateDefragmentedFile(FileInfo tempFile, ContentCatalogueBinaryEntry[] entries, IProgress<ProgressReport> progressCallback)
+    {
+      var currentFile = 0;
+      var time = DateTime.Now;
+      var numberOfFiles = entries.Length;
+      var tempBinaryHandler = new BinaryHandler(tempFile, new CompressionHandler());
+
+      try
+      {
+        for (var i = 0; i < entries.Length; i++)
+        {
+          try
+          {
+            var hash = await CalculatePrimaryHash(entries[i], tempBinaryHandler);
+            if (hash != entries[i].PrimaryContentHash)
+            {
+              progressCallback.Report(new ProgressReport("File verification failed", i, numberOfFiles));
+              return false;
+            }
+            currentFile++;
+            if (DateTime.Now - time > TimeSpan.FromSeconds(5))
+            {
+              progressCallback.Report(new ProgressReport(entries[i].SourceFileInfo.FileName, i, numberOfFiles));
+              time = DateTime.Now;
+            }
+          }
+          catch
+          {
+            progressCallback.Report(new ProgressReport("Catastrofic error in file validation. Dropping it like it's hot"));
+            return false;
+          }
+        }
+      }
+      finally
+      {
+        if (tempBinaryHandler != null)
+        {
+          tempBinaryHandler.CloseStream();
+          tempBinaryHandler = null;
+          GC.WaitForPendingFinalizers();
+        }
+      }
+      return true;
+    }
+
+    private void ReportDefragmentationResult(IProgress<ProgressReport> progressCallback, long newTail)
+    {
+      if (tail > newTail)
+      {
+        progressCallback.Report(new ProgressReport($"{ID}: Defragmentation released {(tail - newTail) / (1024 * 1024)} MB in the file"));
+      }
+      else
+        progressCallback.Report(new ProgressReport($"{ID}: No space was reclaimed"));
+    }
+
+    private async Task WaitForFileRelease()
+    {
+      GC.WaitForPendingFinalizers();
+      await Task.Delay(500);
+    }
+
+    private async Task<long> MoveBinariesToTempFile(ContentCatalogueBinaryEntry[] entries, FileInfo tempFile, IProgress<ProgressReport> progressCallback)
+    {
+      try
+      {
+        long currentOffset = BackupTargetConstants.DataOffset;
+        using (var outputStream = tempFile.Create())
+        {
+          var time = DateTime.Now;
+          for (int i = 0; i < entries.Length; i++)
+          {
+            var entry = entries[i];
+
+            if (await binaryHandler.CopyBytesToStreamAsync(outputStream, entry.TargetOffset, entry.TargetLength))
+            {
+              entry.TargetOffset = currentOffset;
+              currentOffset += entry.TargetLength;
+            }
+            else
+            {
+              return -1;
+            }
+
+            if (DateTime.Now - time > TimeSpan.FromSeconds(5))
+            {
+              progressCallback.Report(new ProgressReport($"{ID}: Moving {i} of {entries.Length} entries", i, entries.Length));
+              time = DateTime.Now;
+            }
+          }
+          binaryHandler.CloseStream();
+          return currentOffset;
+        }
+      }
+      catch (Exception err)
+      {
+        progressCallback.Report(new ProgressReport(err.Message));
+        return -1;
+      }
+      finally
+      {
+        
       }
     }
 

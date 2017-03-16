@@ -108,6 +108,9 @@ namespace Vibe.Hammer.SmartBackup
         do
         {
           var expectToRead = (int)Math.Min(missing, 1000000);
+          if (targetStream.Position == targetStream.Length && expectToRead > 0)
+            throw new IndexOutOfRangeException("Expected data length will pass end of file");
+
           var read = targetStream.Read(buffer, 0, expectToRead);
           if (read > 0)
           {
@@ -250,19 +253,50 @@ namespace Vibe.Hammer.SmartBackup
     {
       if (await OpenStream())
       {
-        targetStream.Seek(offset, SeekOrigin.Begin);
-        var buffer = new byte[BackupTargetConstants.BufferSize];
-        var bytesToGo = length;
-        do
+        try
         {
-          var read = await targetStream.ReadAsync(buffer, 0, (int)Math.Min(BackupTargetConstants.BufferSize, bytesToGo));
-          if (read > 0)
-            await outputStream.WriteAsync(buffer, 0, read);
-          bytesToGo -= read;
-          if (bytesToGo > 0 && read == 0)
-            return false;
-        } while (bytesToGo > 0);
-        return true;
+          targetStream.Seek(offset, SeekOrigin.Begin);
+          var buffer = new byte[BackupTargetConstants.BufferSize];
+          var bytesToGo = length;
+          do
+          {
+            var read = await targetStream.ReadAsync(buffer, 0, (int)Math.Min(BackupTargetConstants.BufferSize, bytesToGo));
+            if (read > 0)
+              await outputStream.WriteAsync(buffer, 0, read);
+            bytesToGo -= read;
+            if (bytesToGo > 0 && read == 0)
+              return false;
+          } while (bytesToGo > 0);
+          return true;
+        }
+        catch (ArgumentNullException)
+        {
+          return false;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+          return false;
+        }
+        catch (ArgumentException)
+        {
+          return false;
+        }
+        catch (NotSupportedException)
+        {
+          return false;
+        }
+        catch (ObjectDisposedException)
+        {
+          return false;
+        }
+        catch (InvalidOperationException)
+        {
+          return false;
+        }
+        catch (Exception)
+        {
+          return false;
+        }
       }
       return false;
     }
