@@ -13,10 +13,7 @@ namespace Vibe.Hammer.SmartBackup
 
     public IEnumerable<FileInformation> Files
     {
-      get
-      {
-        return log.Values;
-      }
+      get => log.Values;
     }
 
     public void Add(FileInformation fileInformation)

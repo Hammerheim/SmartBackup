@@ -22,7 +22,6 @@ namespace Vibe.Hammer.SmartBackup
     // -backup -source:"C:\Test" -target:"E:\Test"
     // -extract -target:"L:\test2"
     // -maintenance -target:e:\test
-    private static bool shallowScanComplete;
     static void Main(string[] args)
     {
       try
@@ -150,7 +149,6 @@ namespace Vibe.Hammer.SmartBackup
 
       Console.WriteLine("Building source dictionary using shallow scan...");
       var runner = new Runner(target);
-      shallowScanComplete = false;
       var result = await runner.Scan(source, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       if (result != null)
       {

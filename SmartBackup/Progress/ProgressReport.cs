@@ -8,22 +8,9 @@ namespace Vibe.Hammer.SmartBackup.Progress
 {
   public class ProgressReport
   {
-    public ProgressReport(string additionalInfo)
-    {
-      AdditionalInfo = additionalInfo;
-    }
-
-    public ProgressReport(string additionalInfo, int currentActionNumber)
-      : this(additionalInfo)
-    {
-      CurrentActionNumber = currentActionNumber;
-    }
-
-    public ProgressReport(string additionalInfo, int currentActionNumber, int expectedNumberOfActions)
-      : this(additionalInfo, currentActionNumber)
-    {
-      ExpectedNumberOfActions = expectedNumberOfActions;
-    }
+    public ProgressReport(string additionalInfo) => AdditionalInfo = additionalInfo;
+    public ProgressReport(string additionalInfo, int currentActionNumber) : this(additionalInfo) => CurrentActionNumber = currentActionNumber;
+    public ProgressReport(string additionalInfo, int currentActionNumber, int expectedNumberOfActions) : this(additionalInfo, currentActionNumber) => ExpectedNumberOfActions = expectedNumberOfActions;
 
     public string AdditionalInfo { get; set; }
 

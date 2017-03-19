@@ -31,6 +31,13 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     [XmlAttribute("bti")]
     public int BackupTargetIndex { get; set; }
 
+    [XmlArray("Content")]
+    [XmlArrayItem("BTI")]
+    public List<ContentCatalogueEntry> Content { get; private set; }
+
+    [XmlIgnore]
+    public Dictionary<string, List<ContentCatalogueEntry>> KeySearchContent { get; private set; }
+
     public void Add(ContentCatalogueEntry item)
     {
       Content.Add(item);
@@ -43,13 +50,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       if (KeySearchContent.ContainsKey(item.Key))
         KeySearchContent.Remove(item.Key);
     }
-
-    [XmlArray("Content")]
-    [XmlArrayItem("BTI")]
-    public List<ContentCatalogueEntry> Content { get; private set; }
-
-    [XmlIgnore]
-    public Dictionary<string, List<ContentCatalogueEntry>> KeySearchContent { get; private set; }
 
     public void RebuildSearchIndex()
     {

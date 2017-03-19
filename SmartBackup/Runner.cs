@@ -13,7 +13,7 @@ namespace Vibe.Hammer.SmartBackup
 {
   public class Runner : IRunner
   {
-    private IFileInformationGatherer gatherer = new FileInformationGatherer(new Sha256Hasher());
+    private IFileInformationGatherer gatherer = new FileInformationGatherer();
     private int currentFile;
     private int maxNumberOfFiles;
     private DateTime lastProgressReport;
@@ -101,19 +101,16 @@ namespace Vibe.Hammer.SmartBackup
 
     private IBackupTarget GetOrCreateBackupTarget(int maxFileSize, DirectoryInfo targetRoot, string filenamePattern, FileInformation file)
     {
-      int targetId;
-      IBackupTarget target;
-      if (!catalogue.TryFindBackupTargetWithRoom(file.Size, out targetId))
+      var findTargetResult = catalogue.TryFindBackupTargetWithRoom(file.Size);
+
+      if (!findTargetResult.Found)
       {
-        targetId = catalogue.AddBackupTarget();
-        target = BackupTargetFactory.CreateTarget(targetId, 0, maxFileSize, targetRoot, filenamePattern);
+        return BackupTargetFactory.CreateTarget(catalogue.AddBackupTarget(), 0, maxFileSize, targetRoot, filenamePattern);
       }
       else
       {
-        target = BackupTargetFactory.GetCachedTarget(targetId);
+        return BackupTargetFactory.GetCachedTarget(findTargetResult.TargetId);
       }
-
-      return target;
     }
 
     private async Task AddFileToTargetAndCatalogue(bool compressIfPossible, List<FileInformation> errors, FileInformation file, IBackupTarget target, int version)
@@ -140,8 +137,8 @@ namespace Vibe.Hammer.SmartBackup
 
       progressCallback.Report(new ProgressReport("Tombstoning deleted files..."));
       lastProgressReport = DateTime.Now;
-      
-      var entries = catalogue.EnumerateContent().ToList();
+
+      var entries = catalogue.EnumerateContent();
       maxNumberOfFiles = entries.Count();
       foreach (var entry in entries)
       {
@@ -185,7 +182,7 @@ namespace Vibe.Hammer.SmartBackup
     {
       var logger = new FileTreeLog();
       var recurser = new DirectoryRecurser();
-      var result = await recurser.RecurseDirectory(sourceRoot, new SimpleFileHandler(new FileInformationGatherer(new Sha256Hasher()), logger), false, progressCallback);
+      var result = await recurser.RecurseDirectory(sourceRoot, new SimpleFileHandler(new FileInformationGatherer(), logger), false, progressCallback);
       if (result)
       {
         return logger;
@@ -202,7 +199,7 @@ namespace Vibe.Hammer.SmartBackup
       lastProgressReport = DateTime.Now;
       maxNumberOfFiles = catalogue.ContentLengths.Count();
       progressCallback.Report(new ProgressReport("Scanning for missing file hashes..."));
-      foreach (var entry in catalogue.EnumerateContent()) //entryList.Where(x => string.IsNullOrWhiteSpace(x.PrimaryContentHash)))
+      foreach (var entry in catalogue.EnumerateContent())
       {
         currentFile++;
         var binaryEntry = entry as ContentCatalogueBinaryEntry;

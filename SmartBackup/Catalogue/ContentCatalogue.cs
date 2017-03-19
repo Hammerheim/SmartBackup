@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -56,6 +57,11 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     [XmlIgnore]
     public Dictionary<int, TargetContentCatalogue> SearchTargets { get; private set; }
 
+    [XmlIgnore]
+    public Dictionary<string, List<ContentCatalogueBinaryEntry>> ContentHashes { get; private set; }
+    [XmlIgnore]
+    public Dictionary<long, List<ContentCatalogueBinaryEntry>> ContentLengths { get; private set; }
+
     internal void AddItem(int targetId, ContentCatalogueBinaryEntry catalogueItem)
     {
       if (SearchTargets.ContainsKey(targetId))
@@ -63,12 +69,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         SearchTargets[targetId].Add(catalogueItem);
       }
     }
-
-    [XmlIgnore]
-    public Dictionary<string, List<ContentCatalogueBinaryEntry>> ContentHashes { get; private set; }
-    [XmlIgnore]
-    public Dictionary<long, List<ContentCatalogueBinaryEntry>> ContentLengths { get; private set; }
-
     public void RebuildSearchIndex()
     {
       foreach (var item in Targets)
@@ -81,15 +81,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       BuildContentHashesDictionary();
     }
 
-    public ContentCatalogueEntry GetNewestVersion(FileInformation file)
-    {
-      return GetNewestVersion(file.FullyQualifiedFilename);
-    }
-
-    private FileInfo GetContentCatalogueFilename()
-    {
-      return new FileInfo(Path.Combine(TargetDirectory.FullName, $"{FilenamePattern}.ContentCatalogue.exe"));
-    }
+    public ContentCatalogueEntry GetNewestVersion(FileInformation file) => GetNewestVersion(file.FullyQualifiedFilename);
+    private FileInfo GetContentCatalogueFilename() => new FileInfo(Path.Combine(TargetDirectory.FullName, $"{FilenamePattern}.ContentCatalogue.exe"));
 
     public ContentCatalogueEntry GetNewestVersion(string key)
     {
@@ -189,17 +182,12 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
       binaryHandler.CloseStream();
     }
-    public void WriteCatalogue()
-    {
-      binaryHandler.WriteContentCatalogue(this, false);
-    }
+    public void WriteCatalogue() => binaryHandler.WriteContentCatalogue(this, false);
 
     public IBackupTarget GetBackupTargetContainingFile(FileInformation file)
     {
       var target = Targets.FirstOrDefault(t => t.KeySearchContent.ContainsKey(file.FullyQualifiedFilename));
-      if (target == null)
-        return null;
-      return BackupTargetFactory.GetCachedTarget(target.BackupTargetIndex);
+      return target == null ? null : BackupTargetFactory.GetCachedTarget(target.BackupTargetIndex);
     }
 
     public List<string> GetUniqueFileKeys()
@@ -304,6 +292,28 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
+    public int AddBackupTarget()
+    {
+      var id = SearchTargets.Keys.Count == 0 ? 0 : SearchTargets.Keys.Max() + 1;
+      var target = new TargetContentCatalogue(id);
+      Add(target);
+      return id;
+    }
+
+    public (bool Found, int TargetId) TryFindBackupTargetWithRoom(long requiredSpace)
+    {
+      foreach (var target in Targets)
+      {
+        if ((MaxSizeOfFiles * BackupTargetConstants.MegaByte) - target.CalculateTail() >= requiredSpace)
+        {
+          return (true, target.BackupTargetIndex);
+        }
+      }
+      return (false, -1);
+      
+    }
+
+
     public IEnumerable<ContentCatalogueEntry> EnumerateContent()
     {
       foreach (var target in Targets)
@@ -313,29 +323,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
           yield return entry;
         }
       }
-    }
-
-    public int AddBackupTarget()
-    {
-      var id = SearchTargets.Keys.Count == 0 ? 0 : SearchTargets.Keys.Max() + 1;
-      var target = new TargetContentCatalogue(id);
-      Add(target);
-      return id;
-    }
-
-    public bool TryFindBackupTargetWithRoom(long requiredSpace, out int id)
-    {
-      id = -1;
-      foreach (var target in Targets)
-      {
-        if ((MaxSizeOfFiles * BackupTargetConstants.MegaByte) - target.CalculateTail() >= requiredSpace)
-        {
-          id = target.BackupTargetIndex;
-          return true;
-        }
-      }
-      return false;
-      
     }
   }
 }

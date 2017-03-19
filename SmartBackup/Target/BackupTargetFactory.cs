@@ -50,14 +50,8 @@ namespace Vibe.Hammer.SmartBackup.Target
       return null;
     }
 
-    private static bool IsCached(int backupTargetIndex)
-    {
-      return targets.ContainsKey(backupTargetIndex);
-    }
+    private static bool IsCached(int backupTargetIndex) => targets.ContainsKey(backupTargetIndex);
 
-    private static void ClearCache()
-    {
-      targets.Clear();
-    }
+    private static void ClearCache() =>targets.Clear();
   }
 }

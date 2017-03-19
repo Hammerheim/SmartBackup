@@ -11,10 +11,7 @@ namespace Vibe.Hammer.SmartBackup.Compression
 {
   internal class CompressionHandler : ICompressionHandler
   {
-    public virtual async Task<bool> CompressFile(FileInfo sourceFile, FileInfo targetFile)
-    {
-      return await CompressFileAsStream(sourceFile, targetFile);
-    }
+    public virtual async Task<bool> CompressFile(FileInfo sourceFile, FileInfo targetFile) => await CompressFileAsStream(sourceFile, targetFile);
 
     private async Task<bool> CompressFileAsStream(FileInfo sourceFile, FileInfo targetFile)
     {
@@ -60,10 +57,7 @@ namespace Vibe.Hammer.SmartBackup.Compression
       }
     }
 
-    public virtual async Task<bool> DecompressFile(FileInfo compressedFile, FileInfo sourceFile)
-    {
-      return await DecompressFileStream(compressedFile, sourceFile);
-    }
+    public virtual async Task<bool> DecompressFile(FileInfo compressedFile, FileInfo sourceFile) => await DecompressFileStream(compressedFile, sourceFile);
 
     private async Task<bool> DecompressFileStream(FileInfo compressedFile, FileInfo targetFile)
     {
@@ -113,9 +107,6 @@ namespace Vibe.Hammer.SmartBackup.Compression
       }
     }
 
-    public virtual bool ShouldCompress(FileInfo file)
-    {
-      return !CompressedFileTypes.IsCompressed(file.Extension);
-    }
+    public virtual bool ShouldCompress(FileInfo file) => !CompressedFileTypes.IsCompressed(file.Extension);
   }
 }

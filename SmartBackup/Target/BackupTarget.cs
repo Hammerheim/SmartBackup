@@ -142,10 +142,7 @@ namespace Vibe.Hammer.SmartBackup
         sourceFile.MoveTo(targetFile.FullName);
     }
 
-    public async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry)
-    {
-      return await CalculatePrimaryHash(entry, binaryHandler);
-    }
+    public async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry) => await CalculatePrimaryHash(entry, binaryHandler);
 
     private async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry, IBinaryHandler handler)
     {

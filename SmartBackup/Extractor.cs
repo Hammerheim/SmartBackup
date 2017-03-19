@@ -12,10 +12,7 @@ namespace Vibe.Hammer.SmartBackup
   public class Extractor : IExtractor
   {
     private readonly IContentCatalogue catalogue;
-    public Extractor(IContentCatalogue contentCatalogue)
-    {
-      this.catalogue = contentCatalogue;
-    }
+    public Extractor(IContentCatalogue contentCatalogue) => this.catalogue = contentCatalogue;
 
     public async Task ExtractAll(DirectoryInfo extractionRoot, IProgress<ProgressReport> progressCallback)
     {
