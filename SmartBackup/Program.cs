@@ -58,7 +58,7 @@ namespace Vibe.Hammer.SmartBackup
 
         if (arguments.ShouldExtract)
         {
-          MainExtractorAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB, arguments.FilenamePattern).Wait();
+          MainExtractorAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB, arguments.ValidationOnExtraction, arguments.FilenamePattern).Wait();
         }
         Console.WriteLine("Done");
       }
@@ -103,7 +103,7 @@ namespace Vibe.Hammer.SmartBackup
       Console.WriteLine(@"Use: -backup -source:path -target:path");
     }
 
-    private static async Task MainExtractorAsync(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern)
+    private static async Task MainExtractorAsync(DirectoryInfo source, DirectoryInfo target, int fileSize, bool validateOnExtraction, string filenamePattern)
     {
       if (source.FullName == string.Empty)
       {
@@ -117,7 +117,7 @@ namespace Vibe.Hammer.SmartBackup
       Console.WriteLine($"Extracting files from {source} to {target.FullName}");
       var callbackObject = new Callback();
       var extractor = new Extractor(catalogue);
-      await extractor.ExtractAll(target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      await extractor.ExtractAll(target, validateOnExtraction, new Progress<ProgressReport>(callbackObject.ProgressCallback));
     }
 
     private static async Task MainMaintenanceAsync(DirectoryInfo target, int fileSize, string filenamePattern)

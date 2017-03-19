@@ -12,6 +12,7 @@ namespace Vibe.Hammer.SmartBackup
     public bool Debug { get; internal set; }
     public string FilenamePattern { get; internal set; }
     public bool Compress { get; internal set; }
+    public bool ValidationOnExtraction { get; set; }
 
     // Helpers
     public bool ShouldBackup => (Actions & ProgramAction.Backup) == ProgramAction.Backup;

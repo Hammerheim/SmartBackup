@@ -53,6 +53,10 @@ namespace Vibe.Hammer.SmartBackup
         case "-c":
           args.Compress = true;
           break;
+        case "-validateonextraction":
+        case "-ve":
+          args.ValidationOnExtraction = true;
+          break;
         default:
           throw new ArgumentException(paramter);
       }

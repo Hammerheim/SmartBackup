@@ -14,7 +14,7 @@ namespace Vibe.Hammer.SmartBackup
     private readonly IContentCatalogue catalogue;
     public Extractor(IContentCatalogue contentCatalogue) => this.catalogue = contentCatalogue;
 
-    public async Task ExtractAll(DirectoryInfo extractionRoot, IProgress<ProgressReport> progressCallback)
+    public async Task ExtractAll(DirectoryInfo extractionRoot, bool validateOnExtraction, IProgress<ProgressReport> progressCallback)
     {
       var keys = catalogue.GetUniqueFileKeys();
       var numberOfFiles = keys.Count;
@@ -23,7 +23,7 @@ namespace Vibe.Hammer.SmartBackup
 
       foreach (var key in keys)
       {
-        await ExtractFile(key, extractionRoot);
+        await ExtractFile(key, validateOnExtraction, extractionRoot);
         if (DateTime.Now - lastReport > TimeSpan.FromSeconds(5))
         {
           var file = catalogue.GetNewestVersion(key);
@@ -35,7 +35,7 @@ namespace Vibe.Hammer.SmartBackup
       }
     }
 
-    private async Task ExtractFile(string key, DirectoryInfo extractionRoot)
+    private async Task ExtractFile(string key, bool validateOnExtraction, DirectoryInfo extractionRoot)
     {
       var item = catalogue.GetNewestVersion(key);
       if (item.Deleted)
@@ -44,7 +44,7 @@ namespace Vibe.Hammer.SmartBackup
       var linkItem = item as ContentCatalogueLinkEntry;
       if (linkItem != null)
       {
-        await ExtractLinkedFile(linkItem, extractionRoot);
+        await ExtractLinkedFile(linkItem, extractionRoot, validateOnExtraction);
         return;
       }
 
@@ -56,40 +56,17 @@ namespace Vibe.Hammer.SmartBackup
       if (backupTarget == null)
         throw new FileNotFoundException();
 
-      await backupTarget.ExtractFile(binaryContentItem, extractionRoot);
+      await backupTarget.ExtractFile(binaryContentItem, validateOnExtraction, extractionRoot);
     }
 
-    private async Task ExtractFile(string key, int version, DirectoryInfo extractionRoot)
-    {
-      var item = catalogue.GetSpecificVersion(key, version);
-      if (item.Deleted)
-        return;
-
-      var linkItem = item as ContentCatalogueLinkEntry;
-      if (linkItem != null)
-      {
-        await ExtractLinkedFile(linkItem, extractionRoot);
-        return;
-      }
-
-      var binaryContentItem = item as ContentCatalogueBinaryEntry;
-      if (binaryContentItem == null)
-        throw new FileNotFoundException();
-
-      var backupTarget = catalogue.GetBackupTargetContainingFile(item.SourceFileInfo);
-      if (backupTarget == null)
-        throw new FileNotFoundException();
-      await backupTarget.ExtractFile(binaryContentItem, extractionRoot);
-    }
-
-    private async Task ExtractLinkedFile(ContentCatalogueLinkEntry link, DirectoryInfo extractionRoot)
+    private async Task ExtractLinkedFile(ContentCatalogueLinkEntry link, DirectoryInfo extractionRoot, bool validateOnExtraction)
     {
       var item = catalogue.GetSpecificVersion(link.ContentCatalogueEntryKey, link.ContentCatalogueEntryVersion);
 
       var newLinkItem = item as ContentCatalogueLinkEntry;
       if (newLinkItem != null)
       {
-        await ExtractLinkedFile(newLinkItem, extractionRoot);
+        await ExtractLinkedFile(newLinkItem, extractionRoot, validateOnExtraction);
         return;
       }
 
@@ -100,7 +77,7 @@ namespace Vibe.Hammer.SmartBackup
       var backupTarget = catalogue.GetBackupTargetContainingFile(item.SourceFileInfo);
       if (backupTarget == null)
         throw new FileNotFoundException();
-      await backupTarget.ExtractLinkedFile(binaryContentItem, link, extractionRoot);
+      await backupTarget.ExtractLinkedFile(binaryContentItem, link, extractionRoot, validateOnExtraction);
     }
   }
 }

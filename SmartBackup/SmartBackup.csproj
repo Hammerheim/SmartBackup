@@ -77,6 +77,7 @@
     <Compile Include="Catalogue\TargetContentCatalogue.cs" />
     <Compile Include="Catalogue\ContentCatalogue.cs" />
     <Compile Include="Target\ContentCatalogueBinaryHandler.cs" />
+    <Compile Include="Target\ExtractionException.cs" />
     <Compile Include="Target\IBackupTarget.cs" />
     <Compile Include="Target\IBackupTargetBinaryHandler.cs" />
     <Compile Include="ByteToString.cs" />

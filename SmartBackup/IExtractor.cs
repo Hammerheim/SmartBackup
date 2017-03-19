@@ -10,6 +10,6 @@ namespace Vibe.Hammer.SmartBackup
 {
   public interface IExtractor
   {
-    Task ExtractAll(DirectoryInfo extractionRoot, IProgress<ProgressReport> progressCallback);
+    Task ExtractAll(DirectoryInfo extractionRoot, bool validateOnExtraction, IProgress<ProgressReport> progressCallback);
   }
 }

@@ -119,7 +119,13 @@ namespace Vibe.Hammer.SmartBackup
       if (catalogueItem != null)
       {
         catalogue.AddItem(target.TargetId, catalogueItem);
-        catalogueItem.Verified = await target.VerifyContent(catalogueItem);
+        var verificationResult = await target.VerifyContent(catalogueItem);
+        catalogueItem.Verified = verificationResult.originalStillExists && verificationResult.verificationSucceeded;
+        if (verificationResult.originalStillExists && !verificationResult.verificationSucceeded)
+        {
+          catalogue.RemoveItem(catalogueItem);
+          errors.Add(file);
+        }
       }
       else
       {
@@ -209,7 +215,14 @@ namespace Vibe.Hammer.SmartBackup
         {
           var backupTarget = catalogue.GetBackupTargetFor(entry);
           ReportProgress(progressCallback, $"Verifying: {binaryEntry.SourceFileInfo.FileName}");
-          binaryEntry.Verified = await backupTarget.VerifyContent(binaryEntry);
+
+          var verificationResult = await backupTarget.VerifyContent(binaryEntry);
+          binaryEntry.Verified = verificationResult.originalStillExists && verificationResult.verificationSucceeded;
+          if (verificationResult.originalStillExists && !verificationResult.verificationSucceeded)
+          {
+            catalogue.RemoveItem(binaryEntry);
+            progressCallback.Report(new ProgressReport($"Critical error verifying file {binaryEntry.SourceFileInfo.FullyQualifiedFilename}. Binary content differ from original"));
+          }
         }
       }
       currentFile++;

@@ -69,19 +69,19 @@ namespace Vibe.Hammer.SmartBackup
       Initialized = true;
     }
 
-    public async Task ExtractFile(ContentCatalogueBinaryEntry file, DirectoryInfo extractionRoot)
+    public async Task ExtractFile(ContentCatalogueBinaryEntry file, bool validateOnExtraction, DirectoryInfo extractionRoot)
     {
       var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, file.SourceFileInfo.RelativePath, file.SourceFileInfo.FileName));
-      await ExtractFile(file, targetFile, file.SourceFileInfo.LastModified);
+      await ExtractFile(file, targetFile, file.SourceFileInfo.LastModified, validateOnExtraction);
     }
 
-    public async Task ExtractLinkedFile(ContentCatalogueBinaryEntry binaryFile, ContentCatalogueLinkEntry linkFile, DirectoryInfo extractionRoot)
+    public async Task ExtractLinkedFile(ContentCatalogueBinaryEntry binaryFile, ContentCatalogueLinkEntry linkFile, DirectoryInfo extractionRoot, bool validateOnExtraction)
     {
       var targetFile = new FileInfo(Path.Combine(extractionRoot.FullName, linkFile.SourceFileInfo.RelativePath, linkFile.SourceFileInfo.FileName));
-      await ExtractFile(binaryFile, targetFile, linkFile.SourceFileInfo.LastModified);
+      await ExtractFile(binaryFile, targetFile, linkFile.SourceFileInfo.LastModified, validateOnExtraction);
     }
 
-    private async Task ExtractFile(ContentCatalogueBinaryEntry binaryToExtract, FileInfo targetFile, DateTime originalWriteTime)
+    private async Task ExtractFile(ContentCatalogueBinaryEntry binaryToExtract, FileInfo targetFile, DateTime originalWriteTime, bool validateOnExtraction)
     {
       targetFile.Refresh();
       if (targetFile.Exists && targetFile.LastWriteTime >= originalWriteTime)
@@ -120,6 +120,17 @@ namespace Vibe.Hammer.SmartBackup
         {
           SafeOverwriteFile(extractedFile, targetFile, originalWriteTime, () => File.Move(extractedFile.FullName, targetFile.FullName));
         }
+
+        if (validateOnExtraction)
+        {
+          var hash = await CalculatePrimaryHash(targetFile);
+          if (hash != binaryToExtract.PrimaryContentHash)
+          {
+            targetFile.Delete();
+            throw new ExtractionException("Calculated hash for extracted file differs from original");
+          }
+        }
+
         File.SetLastWriteTime(targetFile.FullName, originalWriteTime);
         GC.WaitForPendingFinalizers();
       }
@@ -156,6 +167,7 @@ namespace Vibe.Hammer.SmartBackup
         performMoveAction();
     }
 
+    
     public async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry) => await CalculatePrimaryHash(entry, binaryHandler);
 
     private async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry, IBinaryHandler handler)
@@ -177,7 +189,9 @@ namespace Vibe.Hammer.SmartBackup
       return string.Empty;
     }
 
-    public async Task<bool> VerifyContent(ContentCatalogueBinaryEntry entry)
+    private async Task<string> CalculatePrimaryHash(FileInfo file) => await primaryHasher.GetHashString(file);
+
+    public async Task<(bool originalStillExists, bool verificationSucceeded)> VerifyContent(ContentCatalogueBinaryEntry entry)
     {
       entry.PrimaryContentHash = await CalculatePrimaryHash(entry);
 
@@ -187,9 +201,14 @@ namespace Vibe.Hammer.SmartBackup
       {
         var originalHash = await primaryHasher.GetHashString(originalFile);
         if (entry.PrimaryContentHash == originalHash)
-          return true;
+          return (true, true);
+        else
+        {
+          entry.PrimaryContentHash = string.Empty;
+          return (true, false);
+        }
       }
-      return false;
+      return (false, true);
     }
 
     public async Task<bool> Defragment(List<ContentCatalogueEntry> content, IProgress<ProgressReport> progressCallback)

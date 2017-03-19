@@ -172,6 +172,12 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
+    internal void RemoveItem(ContentCatalogueBinaryEntry catalogueItem)
+    {
+      var target = GetBackupTargetFor(catalogueItem);
+      Targets[target.TargetId].Remove(catalogueItem);
+    }
+
     public void CloseTargets()
     {
       foreach (var target in Targets)
