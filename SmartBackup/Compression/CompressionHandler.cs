@@ -57,7 +57,7 @@ namespace Vibe.Hammer.SmartBackup.Compression
       }
     }
 
-    public virtual async Task<bool> DecompressFile(FileInfo compressedFile, FileInfo sourceFile) => await DecompressFileStream(compressedFile, sourceFile);
+    public virtual async Task<bool> DecompressFile(FileInfo compressedFile, FileInfo targetFile) => await DecompressFileStream(compressedFile, targetFile);
 
     private async Task<bool> DecompressFileStream(FileInfo compressedFile, FileInfo targetFile)
     {

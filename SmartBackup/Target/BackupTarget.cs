@@ -95,7 +95,21 @@ namespace Vibe.Hammer.SmartBackup
         {
           try
           {
-            SafeOverwriteFile(extractedFile, targetFile, originalWriteTime, () => compressionHandler.DecompressFile(extractedFile, targetFile));
+            var decompressedFile = new FileInfo(Path.GetTempFileName());
+            try
+            {
+              if (await compressionHandler.DecompressFile(extractedFile, decompressedFile))
+              {
+                SafeOverwriteFile(extractedFile, targetFile, originalWriteTime, () => File.Move(decompressedFile.FullName, targetFile.FullName));
+              }
+            }
+            finally
+            {
+              decompressedFile.Refresh();
+              if (decompressedFile.Exists)
+                decompressedFile.Delete();
+            }
+
           }
           finally
           {
@@ -139,7 +153,7 @@ namespace Vibe.Hammer.SmartBackup
         }
       }
       else
-        sourceFile.MoveTo(targetFile.FullName);
+        performMoveAction();
     }
 
     public async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry) => await CalculatePrimaryHash(entry, binaryHandler);
