@@ -173,17 +173,27 @@ namespace Vibe.Hammer.SmartBackup
     private async Task<string> CalculatePrimaryHash(ContentCatalogueBinaryEntry entry, IBinaryHandler handler)
     {
       var tempFile = await handler.ExtractFile(entry);
+      var decompressedFile = new FileInfo(Path.GetTempFileName());
 
       tempFile.Refresh();
       if (tempFile.Exists)
       {
         try
         {
+          if (entry.Compressed)
+          {
+            decompressedFile = new FileInfo(Path.GetTempFileName());
+            if (await compressionHandler.DecompressFile(tempFile, decompressedFile))
+            {
+              return await primaryHasher.GetHashString(decompressedFile);
+            }
+          }
           return await primaryHasher.GetHashString(tempFile);
         }
         finally
         {
           tempFile.Delete();
+          decompressedFile.Delete();
         }
       }
       return string.Empty;
