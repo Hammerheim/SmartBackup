@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Vibe.Hammer.SmartBackup.Catalogue;
 using Vibe.Hammer.SmartBackup.Progress;
+using Vibe.Hammer.SmartBackup.Target;
 
 namespace Vibe.Hammer.SmartBackup
 {
@@ -52,10 +53,11 @@ namespace Vibe.Hammer.SmartBackup
       if (binaryContentItem == null)
         throw new FileNotFoundException();
 
-      var backupTarget = catalogue.GetBackupTargetContainingFile(item.SourceFileInfo);
-      if (backupTarget == null)
+      var (found, id) = catalogue.GetBackupTargetContainingFile(item.SourceFileInfo);
+      if (!found)
         throw new FileNotFoundException();
 
+      var backupTarget = BackupTargetFactory.GetCachedTarget(id);
       await backupTarget.ExtractFile(binaryContentItem, validateOnExtraction, extractionRoot);
     }
 
@@ -74,9 +76,11 @@ namespace Vibe.Hammer.SmartBackup
       if (binaryContentItem == null)
         throw new FileNotFoundException();
 
-      var backupTarget = catalogue.GetBackupTargetContainingFile(item.SourceFileInfo);
-      if (backupTarget == null)
+      var (found, id) = catalogue.GetBackupTargetContainingFile(item.SourceFileInfo);
+      if (!found)
         throw new FileNotFoundException();
+
+      var backupTarget = BackupTargetFactory.GetCachedTarget(id);
       await backupTarget.ExtractLinkedFile(binaryContentItem, link, extractionRoot, validateOnExtraction);
     }
   }

@@ -186,10 +186,10 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     }
     public void WriteCatalogue() => binaryHandler.WriteContentCatalogue(this, false);
 
-    public IBackupTarget GetBackupTargetContainingFile(FileInformation file)
+    public (bool Found, int Id) GetBackupTargetContainingFile(FileInformation file)
     {
       var target = Targets.FirstOrDefault(t => t.KeySearchContent.ContainsKey(file.FullyQualifiedFilename));
-      return target == null ? null : BackupTargetFactory.GetCachedTarget(target.BackupTargetIndex);
+      return (target != null, target?.BackupTargetIndex ?? -1); //target == null ? null : BackupTargetFactory.GetCachedTarget(target.BackupTargetIndex);
     }
 
     public List<string> GetUniqueFileKeys()

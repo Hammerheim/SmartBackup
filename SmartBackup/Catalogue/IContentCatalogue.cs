@@ -25,7 +25,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     List<string> GetUniqueFileKeys();
 
-    IBackupTarget GetBackupTargetContainingFile(FileInformation file);
+    (bool Found, int Id) GetBackupTargetContainingFile(FileInformation file);
     int AddBackupTarget();
     (bool Found, int TargetId) TryFindBackupTargetWithRoom(long requiredSpace);
     void AddContentHash(string primaryContentHash, ContentCatalogueBinaryEntry entry);
