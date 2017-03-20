@@ -9,19 +9,11 @@ using Vibe.Hammer.SmartBackup.Target;
 
 namespace Vibe.Hammer.SmartBackup.Catalogue
 {
-  public interface IContentCatalogue
+  public interface IContentCatalogue : IExtractableContentCatalogue
   {
-    ContentCatalogueEntry GetNewestVersion(FileInformation file);
-
-    ContentCatalogueEntry GetNewestVersion(string key);
-
-    ContentCatalogueEntry GetSpecificVersion(string key, int version);
-
     IEnumerable<ContentCatalogueEntry> EnumerateContent();
 
     (bool Found, int Id) GetBackupTargetFor(ContentCatalogueEntry entry);
-
-    List<string> GetUniqueFileKeys();
 
     (bool Found, int Id) GetBackupTargetContainingFile(FileInformation file);
     int AddBackupTarget();

@@ -21,6 +21,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     private ContentCatalogueBinaryHandler binaryHandler;
     private IBackupTargetFactory backupTargetFactory = null;
+    private IExtractableContentCatalogue extractableCatalogue = null;
 
     protected DirectoryInfo TargetDirectory { get; set; }
     protected Dictionary<int, TargetContentCatalogue> SearchTargets { get; set; }
@@ -105,6 +106,16 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
+    protected IExtractableContentCatalogue ExtractableCatalogue
+    {
+      get
+      {
+        if (extractableCatalogue == null)
+          extractableCatalogue = new ExtractableContentCatalogue(this);
+        return extractableCatalogue;
+      }
+    }
+
     private void RebuildTargets() => Targets.ForEach(target => TargetFactory.InitializeTarget(target.BackupTargetIndex, target.CalculateTail()));
 
     public virtual void AddItem(int targetId, ContentCatalogueBinaryEntry catalogueItem)
@@ -125,43 +136,43 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       BuildContentHashesDictionary();
     }
 
-    public virtual ContentCatalogueEntry GetNewestVersion(FileInformation file) => GetNewestVersion(file.FullyQualifiedFilename);
+    //public virtual ContentCatalogueEntry GetNewestVersion(FileInformation file) => GetNewestVersion(file.FullyQualifiedFilename);
     private FileInfo GetContentCatalogueFilename() => new FileInfo(Path.Combine(TargetDirectory.FullName, $"{FilenamePattern}.ContentCatalogue.exe"));
 
-    public virtual ContentCatalogueEntry GetNewestVersion(string key)
-    {
-      ContentCatalogueEntry newestItem = null;
-      foreach (var catalogue in Targets)
-      {
-        if (catalogue.KeySearchContent.ContainsKey(key))
-        {
-          foreach (var item in catalogue.KeySearchContent[key])
-          {
-            if (newestItem == null)
-              newestItem = item;
-            if (item.Version > newestItem.Version)
-              newestItem = item;
-          }
-        }
-      }
-      return newestItem;
-    }
+    //public virtual ContentCatalogueEntry GetNewestVersion(string key)
+    //{
+    //  ContentCatalogueEntry newestItem = null;
+    //  foreach (var catalogue in Targets)
+    //  {
+    //    if (catalogue.KeySearchContent.ContainsKey(key))
+    //    {
+    //      foreach (var item in catalogue.KeySearchContent[key])
+    //      {
+    //        if (newestItem == null)
+    //          newestItem = item;
+    //        if (item.Version > newestItem.Version)
+    //          newestItem = item;
+    //      }
+    //    }
+    //  }
+    //  return newestItem;
+    //}
 
-    public virtual ContentCatalogueEntry GetSpecificVersion(string key, int version)
-    {
-      foreach (var catalogue in Targets)
-      {
-        if (catalogue.KeySearchContent.ContainsKey(key))
-        {
-          foreach (var item in catalogue.KeySearchContent[key])
-          {
-            if (item.Version == version)
-              return item;
-          }
-        }
-      }
-      return null;
-    }
+    //public virtual ContentCatalogueEntry GetSpecificVersion(string key, int version)
+    //{
+    //  foreach (var catalogue in Targets)
+    //  {
+    //    if (catalogue.KeySearchContent.ContainsKey(key))
+    //    {
+    //      foreach (var item in catalogue.KeySearchContent[key])
+    //      {
+    //        if (item.Version == version)
+    //          return item;
+    //      }
+    //    }
+    //  }
+    //  return null;
+    //}
 
     private void AddTargetContentCatalogue(TargetContentCatalogue catalogue)
     {
@@ -199,23 +210,23 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return (target != null, target?.BackupTargetIndex ?? -1); //target == null ? null : BackupTargetFactory.GetCachedTarget(target.BackupTargetIndex);
     }
 
-    public virtual List<string> GetUniqueFileKeys()
-    {
-      Dictionary<string, string> keys = new Dictionary<string, string>();
-      List<string> returnThis = new List<string>();
-      foreach (var target in Targets)
-      {
-        foreach (var file in target.Content)
-        {
-          if (!keys.ContainsKey(file.SourceFileInfo.FullyQualifiedFilename))
-          {
-            keys.Add(file.SourceFileInfo.FullyQualifiedFilename, string.Empty);
-            returnThis.Add(file.SourceFileInfo.FullyQualifiedFilename);
-          }
-        }
-      }
-      return returnThis;
-    }
+    //public virtual List<string> GetUniqueFileKeys()
+    //{
+    //  Dictionary<string, string> keys = new Dictionary<string, string>();
+    //  List<string> returnThis = new List<string>();
+    //  foreach (var target in Targets)
+    //  {
+    //    foreach (var file in target.Content)
+    //    {
+    //      if (!keys.ContainsKey(file.SourceFileInfo.FullyQualifiedFilename))
+    //      {
+    //        keys.Add(file.SourceFileInfo.FullyQualifiedFilename, string.Empty);
+    //        returnThis.Add(file.SourceFileInfo.FullyQualifiedFilename);
+    //      }
+    //    }
+    //  }
+    //  return returnThis;
+    //}
 
     public virtual IEnumerable<List<ContentCatalogueBinaryEntry>> GetAllPossibleDublicates(IProgress<ProgressReport> progressCallback)
     {
@@ -340,5 +351,25 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     public virtual IBackupTarget GetTarget(int id) => GetTarget(id, false);
 
     public virtual IBackupTarget GetTarget(int id, bool allowCreation) => TargetFactory.GetTarget(id, allowCreation);
+
+    public ContentCatalogueEntry GetNewestVersion(FileInformation file)
+    {
+      return ExtractableCatalogue.GetNewestVersion(file);
+    }
+
+    public ContentCatalogueEntry GetNewestVersion(string key)
+    {
+      return ExtractableCatalogue.GetNewestVersion(key);
+    }
+
+    public ContentCatalogueEntry GetSpecificVersion(string key, int version)
+    {
+      return ExtractableCatalogue.GetSpecificVersion(key, version);
+    }
+
+    public List<string> GetUniqueFileKeys()
+    {
+      return ExtractableCatalogue.GetUniqueFileKeys();
+    }
   }
 }

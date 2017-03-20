@@ -54,6 +54,8 @@
     <Compile Include="Catalogue\ContentCatalogueBinaryEntry.cs" />
     <Compile Include="Catalogue\ContentCatalogueLinkEntry.cs" />
     <Compile Include="Catalogue\ContentCatalogueUnclaimedLinkEntry.cs" />
+    <Compile Include="Catalogue\ExtractableContentCatalogue.cs" />
+    <Compile Include="Catalogue\IExtractableContentCatalogue.cs" />
     <Compile Include="Compression\DecompressionOfStreamFailedException.cs" />
     <Compile Include="Compression\FileCompressionAsArchiveFailedException.cs" />
     <Compile Include="Compression\FileCompressionAsStramFailedException.cs" />
