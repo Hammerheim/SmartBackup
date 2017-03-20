@@ -96,6 +96,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Runner.cs" />
     <Compile Include="SimpleFileHandler.cs" />
+    <Compile Include="Target\IBackupTargetFactory.cs" />
     <Compile Include="Target\UnableToOpenStreamException.cs" />
   </ItemGroup>
   <ItemGroup>

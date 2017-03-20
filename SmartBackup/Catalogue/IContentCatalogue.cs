@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Vibe.Hammer.SmartBackup.Progress;
+using Vibe.Hammer.SmartBackup.Target;
 
 namespace Vibe.Hammer.SmartBackup.Catalogue
 {
@@ -16,7 +17,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     ContentCatalogueEntry GetSpecificVersion(string key, int version);
 
-    //Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern);
     IEnumerable<ContentCatalogueEntry> EnumerateContent();
 
     (bool Found, int Id) GetBackupTargetFor(ContentCatalogueEntry entry);
@@ -30,6 +30,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks();
     IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks(int backupTargetId);
     void ReplaceContent(int backupTargetId, ContentCatalogueEntry toBeReplaced, ContentCatalogueEntry replaceWithThis);
+    IBackupTargetFactory GetTargetFactory();
 
     // Content
     int MaxSizeOfFiles { get; }

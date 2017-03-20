@@ -105,11 +105,11 @@ namespace Vibe.Hammer.SmartBackup
 
       if (!findTargetResult.Found)
       {
-        return BackupTargetFactory.CreateTarget(catalogue.AddBackupTarget(), 0, maxFileSize, targetRoot, filenamePattern);
+        return catalogue.GetTargetFactory()?.GetTarget(catalogue.AddBackupTarget(), true);
       }
       else
       {
-        return BackupTargetFactory.GetCachedTarget(findTargetResult.TargetId);
+        return catalogue.GetTargetFactory()?.GetTarget(findTargetResult.TargetId);
       }
     }
 
@@ -218,7 +218,7 @@ namespace Vibe.Hammer.SmartBackup
           {
             ReportProgress(progressCallback, $"Verifying: {binaryEntry.SourceFileInfo.FileName}");
 
-            var backupTarget = BackupTargetFactory.GetCachedTarget(id);
+            var backupTarget = catalogue.GetTargetFactory()?.GetTarget(id);
             var (verificationOriginalExists, verificationSucceeded) = await backupTarget.VerifyContent(binaryEntry);
             binaryEntry.Verified = verificationSucceeded;
             if (verificationOriginalExists && !verificationSucceeded)
@@ -284,15 +284,6 @@ namespace Vibe.Hammer.SmartBackup
       {
         progressCallback.Report(new ProgressReport("Reading content catalogue..."));
         catalogue = await ContentCatalogue.Build(targetRoot, fileSize, filenamePattern);
-        InitializeBinaryBackupTargets(targetRoot, fileSize, filenamePattern, catalogue);
-      }
-    }
-
-    private static void InitializeBinaryBackupTargets(DirectoryInfo target, int fileSize, string filenamePattern, ContentCatalogue catalogue)
-    {
-      foreach (var backupTargets in catalogue.Targets)
-      {
-        BackupTargetFactory.InitializeTarget(backupTargets.BackupTargetIndex, backupTargets.CalculateTail(), fileSize, target, filenamePattern);
       }
     }
 
@@ -315,7 +306,7 @@ namespace Vibe.Hammer.SmartBackup
       foreach (var target in catalogue.Targets)
       {
         currentFile++;
-        var binaryTarget = BackupTargetFactory.CreateTarget(target.BackupTargetIndex, target.CalculateTail(), fileSize, targetRoot, filenamePattern);
+        var binaryTarget = catalogue.GetTargetFactory()?.GetTarget(target.BackupTargetIndex);
         var clonedConent = target.CloneContent();
         if (await binaryTarget.Defragment(clonedConent, progressCallback))
         {

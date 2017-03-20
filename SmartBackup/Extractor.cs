@@ -57,7 +57,7 @@ namespace Vibe.Hammer.SmartBackup
       if (!found)
         throw new FileNotFoundException();
 
-      var backupTarget = BackupTargetFactory.GetCachedTarget(id);
+      var backupTarget = catalogue.GetTargetFactory()?.GetTarget(id);
       await backupTarget.ExtractFile(binaryContentItem, validateOnExtraction, extractionRoot);
     }
 
@@ -80,7 +80,7 @@ namespace Vibe.Hammer.SmartBackup
       if (!found)
         throw new FileNotFoundException();
 
-      var backupTarget = BackupTargetFactory.GetCachedTarget(id);
+      var backupTarget = catalogue.GetTargetFactory()?.GetTarget(id);
       await backupTarget.ExtractLinkedFile(binaryContentItem, link, extractionRoot, validateOnExtraction);
     }
   }
