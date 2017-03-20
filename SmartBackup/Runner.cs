@@ -203,7 +203,7 @@ namespace Vibe.Hammer.SmartBackup
 
       currentFile = 0;
       lastProgressReport = DateTime.Now;
-      maxNumberOfFiles = catalogue.ContentLengths.Count();
+      maxNumberOfFiles = catalogue.CountTotalEntries();
       progressCallback.Report(new ProgressReport("Scanning for missing file hashes..."));
       foreach (var entry in catalogue.EnumerateContent())
       {
