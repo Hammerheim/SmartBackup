@@ -83,6 +83,10 @@ namespace Vibe.Hammer.SmartBackup
         case "-fp":
           args.FilenamePattern = parts[1];
           break;
+        case "-ignoreextensions":
+        case "-ie":
+          args.IgnoreExtensions = parts[1];
+          break;
         default:
           throw new ArgumentException(parameter);
       }

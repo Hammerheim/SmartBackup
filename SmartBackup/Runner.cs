@@ -41,7 +41,7 @@ namespace Vibe.Hammer.SmartBackup
       if (errors.Any())
       {
         progressCallback.Report(new ProgressReport($"Encountered errors in {errors.Count()} files. Retrying"));
-        log = new FileTreeLog();
+        log = new FileTreeLog(new List<string>());
         foreach (var item in errors)
         {
           log.Add(item);
@@ -184,9 +184,9 @@ namespace Vibe.Hammer.SmartBackup
         lastProgressReport = DateTime.Now;
       }
     }
-    public async Task<IFileLog> Scan(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, IProgress<ProgressReport> progressCallback)
+    public async Task<IFileLog> Scan(DirectoryInfo sourceRoot, DirectoryInfo targetRoot, List<string> ignoredExtensions, IProgress<ProgressReport> progressCallback)
     {
-      var logger = new FileTreeLog();
+      var logger = new FileTreeLog(ignoredExtensions);
       var recurser = new DirectoryRecurser();
       var result = await recurser.RecurseDirectory(sourceRoot, new SimpleFileHandler(new FileInformationGatherer(), logger), false, progressCallback);
       if (result)

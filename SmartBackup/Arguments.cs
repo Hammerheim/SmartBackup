@@ -13,11 +13,13 @@ namespace Vibe.Hammer.SmartBackup
     public string FilenamePattern { get; internal set; }
     public bool Compress { get; internal set; }
     public bool ValidationOnExtraction { get; set; }
+    public string IgnoreExtensions { get; set; }
 
     // Helpers
     public bool ShouldBackup => (Actions & ProgramAction.Backup) == ProgramAction.Backup;
     public bool ShouldMaintain => (Actions & ProgramAction.Maintenance) == ProgramAction.Maintenance;
     public bool ShouldExtract => (Actions & ProgramAction.Extraction) == ProgramAction.Extraction;
+    public string[] IgnoredExtensions => IgnoreExtensions.Split(new[] { '|' });
 
   }
 }

@@ -49,7 +49,7 @@ namespace Vibe.Hammer.SmartBackup
         }
         if (arguments.ShouldBackup)
         {
-          MainBackupAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB, arguments.FilenamePattern, arguments.Compress).Wait();
+          MainBackupAsync(arguments.Source, arguments.Target, arguments.FileSizeInMB, arguments.FilenamePattern, arguments.Compress, arguments.IgnoredExtensions).Wait();
         }
         if (arguments.ShouldMaintain)
         {
@@ -138,18 +138,18 @@ namespace Vibe.Hammer.SmartBackup
       path = path.Replace('/', '\\');
       return path;
     }
-    private static async Task MainBackupAsync(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern, bool compressIfPossible)
+    private static async Task MainBackupAsync(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern, bool compressIfPossible, string[] ignoredExtensions)
     {
-      await Backup(source, target, fileSize, filenamePattern, compressIfPossible);
+      await Backup(source, target, fileSize, filenamePattern, compressIfPossible, ignoredExtensions.ToList());
     }
 
-    private static async Task Backup(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern, bool compressIfPossible)
+    private static async Task Backup(DirectoryInfo source, DirectoryInfo target, int fileSize, string filenamePattern, bool compressIfPossible, List<string> ignoredExtensions)
     {
       var callbackObject = new Callback();
 
       Console.WriteLine("Building source dictionary using shallow scan...");
       var runner = new Runner(target);
-      var result = await runner.Scan(source, target, new Progress<ProgressReport>(callbackObject.ProgressCallback));
+      var result = await runner.Scan(source, target, ignoredExtensions, new Progress<ProgressReport>(callbackObject.ProgressCallback));
       if (result != null)
       {
         await runner.Backup(result, target, fileSize, filenamePattern, compressIfPossible, new Progress<ProgressReport>(callbackObject.ProgressCallback));
