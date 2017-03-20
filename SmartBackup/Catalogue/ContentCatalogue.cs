@@ -22,7 +22,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     private ContentCatalogueBinaryHandler binaryHandler;
     protected DirectoryInfo TargetDirectory { get; set; }
 
-    private BackupTargetFactory backupTargetFactory = null;
+    private IBackupTargetFactory backupTargetFactory = null;
 
     #region Construction
 
@@ -66,7 +66,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       instance.MaxSizeOfFiles = expectedMaxSizeInMegaBytes;
       instance.binaryHandler = binaryHandler;
 
-      instance.GetTargetFactory(); // Fix this abomination
       instance.RebuildSearchIndex();
       instance.RebuildTargets();
 
@@ -95,15 +94,17 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     [XmlIgnore]
     protected Dictionary<string, List<ContentCatalogueBinaryEntry>> ContentHashes { get; set; }
-
-    private void RebuildTargets() => Targets.ForEach(backupTargetFactory.InitializeTarget);
-
-    public IBackupTargetFactory GetTargetFactory()
+    private IBackupTargetFactory TargetFactory
     {
-      if (backupTargetFactory == null)
-        backupTargetFactory = new BackupTargetFactory(MaxSizeOfFiles, new DirectoryInfo(BackupDirectory), FilenamePattern);
-      return backupTargetFactory;
+      get
+      {
+        if (backupTargetFactory == null)
+          backupTargetFactory = new BackupTargetFactory(MaxSizeOfFiles, new DirectoryInfo(BackupDirectory), FilenamePattern);
+        return backupTargetFactory;
+      }
     }
+
+    private void RebuildTargets() => Targets.ForEach(target => TargetFactory.InitializeTarget(target.BackupTargetIndex, target.CalculateTail()));
 
     internal void AddItem(int targetId, ContentCatalogueBinaryEntry catalogueItem)
     {
@@ -183,7 +184,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       foreach (var target in Targets)
       {
-        var binaryTarget = backupTargetFactory.GetTarget(target.BackupTargetIndex, false);
+        var binaryTarget = TargetFactory.GetTarget(target.BackupTargetIndex, false);
         if (binaryTarget != null)
           binaryTarget.CloseStream();
       }
@@ -314,9 +315,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         }
       }
       return (false, -1);
-      
     }
-
 
     public IEnumerable<ContentCatalogueEntry> EnumerateContent()
     {
@@ -337,54 +336,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    private class BackupTargetFactory : IBackupTargetFactory
-    {
-      private static Dictionary<int, IBackupTarget> targets = new Dictionary<int, IBackupTarget>();
-      private static int filesize;
-      private static DirectoryInfo targetDirectory;
-      private static string pattern;
+    public IBackupTarget GetTarget(int id) => GetTarget(id, false);
 
-      public BackupTargetFactory(int fileSizeInMB, DirectoryInfo backupDirectory, string filenamePattern)
-      {
-        filesize = fileSizeInMB;
-        targetDirectory = backupDirectory;
-        pattern = filenamePattern;
-      }
-      public void InitializeTarget(TargetContentCatalogue target)
-      {
-        GetOrCreate(target.BackupTargetIndex, target.CalculateTail());
-      }
-
-      public IBackupTarget GetTarget(int id)
-      {
-        return GetTarget(id, false);
-      }
-
-      public IBackupTarget GetTarget(int id, bool createNewIfMissing)
-      {
-        if (createNewIfMissing)
-          return GetOrCreate(id, BackupTargetConstants.DataOffset);
-
-        if (IsCached(id))
-          return targets[id];
-
-        return null;
-      }
-
-      private static IBackupTarget GetOrCreate(int id, long tail)
-      {
-        if (IsCached(id))
-          return targets[id];
-
-        var target = new BackupTarget(new Sha256Hasher(), new CompressionHandler());
-        target.Initialize(filesize, targetDirectory, id, tail, pattern);
-        targets.Add(id, target);
-        return target;
-      }
-
-      private static bool IsCached(int backupTargetIndex) => targets.ContainsKey(backupTargetIndex);
-
-      private static void ClearCache() => targets.Clear();
-    }
+    public IBackupTarget GetTarget(int id, bool allowCreation) => TargetFactory.GetTarget(id, allowCreation);
   }
 }

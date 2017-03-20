@@ -105,11 +105,11 @@ namespace Vibe.Hammer.SmartBackup
 
       if (!findTargetResult.Found)
       {
-        return catalogue.GetTargetFactory()?.GetTarget(catalogue.AddBackupTarget(), true);
+        return catalogue.GetTarget(catalogue.AddBackupTarget(), true);
       }
       else
       {
-        return catalogue.GetTargetFactory()?.GetTarget(findTargetResult.TargetId);
+        return catalogue.GetTarget(findTargetResult.TargetId);
       }
     }
 
@@ -218,7 +218,7 @@ namespace Vibe.Hammer.SmartBackup
           {
             ReportProgress(progressCallback, $"Verifying: {binaryEntry.SourceFileInfo.FileName}");
 
-            var backupTarget = catalogue.GetTargetFactory()?.GetTarget(id);
+            var backupTarget = catalogue.GetTarget(id);
             var (verificationOriginalExists, verificationSucceeded) = await backupTarget.VerifyContent(binaryEntry);
             binaryEntry.Verified = verificationSucceeded;
             if (verificationOriginalExists && !verificationSucceeded)
@@ -306,7 +306,7 @@ namespace Vibe.Hammer.SmartBackup
       foreach (var target in catalogue.Targets)
       {
         currentFile++;
-        var binaryTarget = catalogue.GetTargetFactory()?.GetTarget(target.BackupTargetIndex);
+        var binaryTarget = catalogue.GetTarget(target.BackupTargetIndex);
         var clonedConent = target.CloneContent();
         if (await binaryTarget.Defragment(clonedConent, progressCallback))
         {

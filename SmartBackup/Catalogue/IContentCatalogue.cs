@@ -30,7 +30,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks();
     IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks(int backupTargetId);
     void ReplaceContent(int backupTargetId, ContentCatalogueEntry toBeReplaced, ContentCatalogueEntry replaceWithThis);
-    IBackupTargetFactory GetTargetFactory();
 
     // Content
     int MaxSizeOfFiles { get; }
@@ -38,5 +37,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     string FilenamePattern { get; }
     string BackupDirectory { get; }
     List<TargetContentCatalogue> Targets { get; }
+    IBackupTarget GetTarget(int id);
+    IBackupTarget GetTarget(int id, bool allowCreation);
   }
 }
