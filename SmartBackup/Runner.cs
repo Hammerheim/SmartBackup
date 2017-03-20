@@ -330,10 +330,10 @@ namespace Vibe.Hammer.SmartBackup
 
     private void ConvertAllUnclaimedLinksToClaimedLinks(int id)
     {
-      var unclaimedLinks = catalogue.SearchTargets[id].Content.OfType<ContentCatalogueUnclaimedLinkEntry>().ToArray();
+      var unclaimedLinks = catalogue.GetUnclaimedLinks(id).ToArray();
       foreach (var unclaimedLink in unclaimedLinks)
       {
-        catalogue.Targets[id].ReplaceContent(unclaimedLink, new ContentCatalogueLinkEntry(unclaimedLink));
+        catalogue.ReplaceContent(id, unclaimedLink, new ContentCatalogueLinkEntry(unclaimedLink));
       }
     }
   }

@@ -26,5 +26,16 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     (bool Found, int Id) GetBackupTargetContainingFile(FileInformation file);
     int AddBackupTarget();
     (bool Found, int TargetId) TryFindBackupTargetWithRoom(long requiredSpace);
+
+    IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks();
+    IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks(int backupTargetId);
+    void ReplaceContent(int backupTargetId, ContentCatalogueEntry toBeReplaced, ContentCatalogueEntry replaceWithThis);
+
+    // Content
+    int MaxSizeOfFiles { get; }
+    int Version { get; }
+    string FilenamePattern { get; }
+    string BackupDirectory { get; }
+    List<TargetContentCatalogue> Targets { get; }
   }
 }
