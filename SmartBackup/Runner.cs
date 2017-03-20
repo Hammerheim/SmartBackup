@@ -17,7 +17,7 @@ namespace Vibe.Hammer.SmartBackup
     private int currentFile;
     private int maxNumberOfFiles;
     private DateTime lastProgressReport;
-    private ContentCatalogue catalogue;
+    private IContentCatalogue catalogue;
     private readonly DirectoryInfo root;
 
     public Runner(DirectoryInfo targetRoot)

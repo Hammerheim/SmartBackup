@@ -20,9 +20,11 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     // private and protected fields
 
     private ContentCatalogueBinaryHandler binaryHandler;
-    protected DirectoryInfo TargetDirectory { get; set; }
-
     private IBackupTargetFactory backupTargetFactory = null;
+
+    protected DirectoryInfo TargetDirectory { get; set; }
+    protected Dictionary<int, TargetContentCatalogue> SearchTargets { get; set; }
+    protected Dictionary<string, List<ContentCatalogueBinaryEntry>> ContentHashes { get; set; }
 
     #region Construction
 
@@ -74,27 +76,26 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     #endregion
 
+    #region Public Properties
+
     [XmlAttribute("ms")]
-    public int MaxSizeOfFiles { get; set; }
+    public virtual int MaxSizeOfFiles { get; set; }
 
     [XmlElement("BD")]
-    public string BackupDirectory { get; set; }
+    public virtual string BackupDirectory { get; set; }
 
     [XmlArray("Targets")]
     [XmlArrayItem("BTI")]
-    public List<TargetContentCatalogue> Targets { get; set; }
+    public virtual List<TargetContentCatalogue> Targets { get; set; }
 
     [XmlAttribute("v")]
-    public int Version { get; set; }
+    public virtual int Version { get; set; }
     [XmlAttribute("fp")]
-    public string FilenamePattern { get; set; }
+    public virtual string FilenamePattern { get; set; }
 
-    [XmlIgnore]
-    protected Dictionary<int, TargetContentCatalogue> SearchTargets { get; set; }
+    #endregion
 
-    [XmlIgnore]
-    protected Dictionary<string, List<ContentCatalogueBinaryEntry>> ContentHashes { get; set; }
-    private IBackupTargetFactory TargetFactory
+    protected IBackupTargetFactory TargetFactory
     {
       get
       {
@@ -106,7 +107,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     private void RebuildTargets() => Targets.ForEach(target => TargetFactory.InitializeTarget(target.BackupTargetIndex, target.CalculateTail()));
 
-    internal void AddItem(int targetId, ContentCatalogueBinaryEntry catalogueItem)
+    public virtual void AddItem(int targetId, ContentCatalogueBinaryEntry catalogueItem)
     {
       if (SearchTargets.ContainsKey(targetId))
       {
@@ -124,10 +125,10 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       BuildContentHashesDictionary();
     }
 
-    public ContentCatalogueEntry GetNewestVersion(FileInformation file) => GetNewestVersion(file.FullyQualifiedFilename);
+    public virtual ContentCatalogueEntry GetNewestVersion(FileInformation file) => GetNewestVersion(file.FullyQualifiedFilename);
     private FileInfo GetContentCatalogueFilename() => new FileInfo(Path.Combine(TargetDirectory.FullName, $"{FilenamePattern}.ContentCatalogue.exe"));
 
-    public ContentCatalogueEntry GetNewestVersion(string key)
+    public virtual ContentCatalogueEntry GetNewestVersion(string key)
     {
       ContentCatalogueEntry newestItem = null;
       foreach (var catalogue in Targets)
@@ -146,7 +147,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return newestItem;
     }
 
-    public ContentCatalogueEntry GetSpecificVersion(string key, int version)
+    public virtual ContentCatalogueEntry GetSpecificVersion(string key, int version)
     {
       foreach (var catalogue in Targets)
       {
@@ -173,14 +174,14 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
 
 
-    internal void RemoveItem(ContentCatalogueBinaryEntry catalogueItem)
+    public virtual void RemoveItem(ContentCatalogueBinaryEntry catalogueItem)
     {
       var (found, id) = GetBackupTargetFor(catalogueItem);
       if (found)
         Targets[id].Remove(catalogueItem);
     }
 
-    public void CloseTargets()
+    public virtual void CloseTargets()
     {
       foreach (var target in Targets)
       {
@@ -190,15 +191,15 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
       binaryHandler.CloseStream();
     }
-    public void WriteCatalogue() => binaryHandler.WriteContentCatalogue(this, false);
+    public virtual void WriteCatalogue() => binaryHandler.WriteContentCatalogue(this, false);
 
-    public (bool Found, int Id) GetBackupTargetContainingFile(FileInformation file)
+    public virtual (bool Found, int Id) GetBackupTargetContainingFile(FileInformation file)
     {
       var target = Targets.FirstOrDefault(t => t.KeySearchContent.ContainsKey(file.FullyQualifiedFilename));
       return (target != null, target?.BackupTargetIndex ?? -1); //target == null ? null : BackupTargetFactory.GetCachedTarget(target.BackupTargetIndex);
     }
 
-    public List<string> GetUniqueFileKeys()
+    public virtual List<string> GetUniqueFileKeys()
     {
       Dictionary<string, string> keys = new Dictionary<string, string>();
       List<string> returnThis = new List<string>();
@@ -216,7 +217,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return returnThis;
     }
 
-    public IEnumerable<List<ContentCatalogueBinaryEntry>> GetAllPossibleDublicates(IProgress<ProgressReport> progressCallback)
+    public virtual IEnumerable<List<ContentCatalogueBinaryEntry>> GetAllPossibleDublicates(IProgress<ProgressReport> progressCallback)
     {
       if (!ContentHashes.Any())
         BuildContentHashesDictionary();
@@ -228,7 +229,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    public IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks()
+    public virtual IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks()
     {
       var entries = new List<ContentCatalogueUnclaimedLinkEntry>();
       foreach (var target in Targets)
@@ -238,7 +239,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return entries;
     }
 
-    public IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks(int backupTargetId)
+    public virtual IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks(int backupTargetId)
     {
       if (SearchTargets.ContainsKey(backupTargetId))
       {
@@ -247,7 +248,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return new List<ContentCatalogueUnclaimedLinkEntry>();
     }
 
-    public void ReplaceBinaryEntryWithLink(ContentCatalogueBinaryEntry binary, ContentCatalogueLinkEntry link)
+    public virtual void ReplaceBinaryEntryWithLink(ContentCatalogueBinaryEntry binary, ContentCatalogueLinkEntry link)
     {
       foreach (var target in Targets)
       {
@@ -258,7 +259,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
       
     }
-    public (bool Found, int Id) GetBackupTargetFor(ContentCatalogueEntry entry)
+    public virtual (bool Found, int Id) GetBackupTargetFor(ContentCatalogueEntry entry)
     {
       foreach (var target in Targets)
       {
@@ -272,7 +273,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return (false, -1);
     }
 
-    private void BuildContentHashesDictionary()
+    protected void BuildContentHashesDictionary()
     {
       ContentHashes.Clear();
       foreach (var target in Targets)
@@ -292,12 +293,12 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    internal int CountTotalEntries()
+    public virtual int CountTotalEntries()
     {
       return Targets.Sum(target => target.Content.Count);
     }
 
-    public int AddBackupTarget()
+    public virtual int AddBackupTarget()
     {
       var id = SearchTargets.Keys.Count == 0 ? 0 : SearchTargets.Keys.Max() + 1;
       var target = new TargetContentCatalogue(id);
@@ -305,7 +306,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return id;
     }
 
-    public (bool Found, int TargetId) TryFindBackupTargetWithRoom(long requiredSpace)
+    public virtual (bool Found, int TargetId) TryFindBackupTargetWithRoom(long requiredSpace)
     {
       foreach (var target in Targets)
       {
@@ -317,7 +318,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return (false, -1);
     }
 
-    public IEnumerable<ContentCatalogueEntry> EnumerateContent()
+    public virtual IEnumerable<ContentCatalogueEntry> EnumerateContent()
     {
       foreach (var target in Targets)
       {
@@ -328,7 +329,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    public void ReplaceContent(int backupTargetId, ContentCatalogueEntry toBeReplaced, ContentCatalogueEntry replaceWithThis)
+    public virtual void ReplaceContent(int backupTargetId, ContentCatalogueEntry toBeReplaced, ContentCatalogueEntry replaceWithThis)
     {
       if (SearchTargets.ContainsKey(backupTargetId))
       {
@@ -336,8 +337,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    public IBackupTarget GetTarget(int id) => GetTarget(id, false);
+    public virtual IBackupTarget GetTarget(int id) => GetTarget(id, false);
 
-    public IBackupTarget GetTarget(int id, bool allowCreation) => TargetFactory.GetTarget(id, allowCreation);
+    public virtual IBackupTarget GetTarget(int id, bool allowCreation) => TargetFactory.GetTarget(id, allowCreation);
   }
 }
