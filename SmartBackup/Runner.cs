@@ -119,9 +119,9 @@ namespace Vibe.Hammer.SmartBackup
       if (catalogueItem != null)
       {
         catalogue.AddItem(target.TargetId, catalogueItem);
-        var verificationResult = await target.VerifyContent(catalogueItem);
-        catalogueItem.Verified = verificationResult.originalStillExists && verificationResult.verificationSucceeded;
-        if (verificationResult.originalStillExists && !verificationResult.verificationSucceeded)
+        var (verificationOriginalExists, verificationSucceeded) = await target.VerifyContent(catalogueItem);
+        catalogueItem.Verified = verificationSucceeded;
+        if (verificationOriginalExists && !verificationSucceeded)
         {
           catalogue.RemoveItem(catalogueItem);
           errors.Add(file);
@@ -213,15 +213,19 @@ namespace Vibe.Hammer.SmartBackup
           continue;
         if (!binaryEntry.Verified)
         {
-          var backupTarget = catalogue.GetBackupTargetFor(entry);
-          ReportProgress(progressCallback, $"Verifying: {binaryEntry.SourceFileInfo.FileName}");
-
-          var verificationResult = await backupTarget.VerifyContent(binaryEntry);
-          binaryEntry.Verified = verificationResult.originalStillExists && verificationResult.verificationSucceeded;
-          if (verificationResult.originalStillExists && !verificationResult.verificationSucceeded)
+          var (found, id) = catalogue.GetBackupTargetFor(entry);
+          if (found)
           {
-            catalogue.RemoveItem(binaryEntry);
-            progressCallback.Report(new ProgressReport($"Critical error verifying file {binaryEntry.SourceFileInfo.FullyQualifiedFilename}. Binary content differ from original"));
+            ReportProgress(progressCallback, $"Verifying: {binaryEntry.SourceFileInfo.FileName}");
+
+            var backupTarget = BackupTargetFactory.GetCachedTarget(id);
+            var (verificationOriginalExists, verificationSucceeded) = await backupTarget.VerifyContent(binaryEntry);
+            binaryEntry.Verified = verificationSucceeded;
+            if (verificationOriginalExists && !verificationSucceeded)
+            {
+              catalogue.RemoveItem(binaryEntry);
+              progressCallback.Report(new ProgressReport($"Critical error verifying file {binaryEntry.SourceFileInfo.FullyQualifiedFilename}. Binary content differ from original"));
+            }
           }
         }
       }

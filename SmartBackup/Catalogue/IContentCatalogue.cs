@@ -16,18 +16,15 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     ContentCatalogueEntry GetSpecificVersion(string key, int version);
 
-    void Add(TargetContentCatalogue catalogue);
-
     Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern);
     IEnumerable<ContentCatalogueEntry> EnumerateContent();
 
-    IBackupTarget GetBackupTargetFor(ContentCatalogueEntry entry);
+    (bool Found, int Id) GetBackupTargetFor(ContentCatalogueEntry entry);
 
     List<string> GetUniqueFileKeys();
 
     (bool Found, int Id) GetBackupTargetContainingFile(FileInformation file);
     int AddBackupTarget();
     (bool Found, int TargetId) TryFindBackupTargetWithRoom(long requiredSpace);
-    void AddContentHash(string primaryContentHash, ContentCatalogueBinaryEntry entry);
   }
 }

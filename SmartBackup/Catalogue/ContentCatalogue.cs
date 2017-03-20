@@ -115,20 +115,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       return null;
     }
 
-    public void AddContentHash(string primaryContentHash, ContentCatalogueBinaryEntry entry)
-    {
-      if (string.IsNullOrEmpty(primaryContentHash))
-        return;
-      if (string.IsNullOrEmpty(entry.PrimaryContentHash))
-        return;
-
-      if (ContentHashes.ContainsKey(primaryContentHash))
-        ContentHashes[primaryContentHash].Add(entry);
-      else
-        ContentHashes.Add(primaryContentHash, new List<ContentCatalogueBinaryEntry> { entry });
-    }
-
-    public void Add(TargetContentCatalogue catalogue)
+    private void AddTargetContentCatalogue(TargetContentCatalogue catalogue)
     {
       if (!SearchTargets.ContainsKey(catalogue.BackupTargetIndex))
       {
@@ -170,8 +157,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     internal void RemoveItem(ContentCatalogueBinaryEntry catalogueItem)
     {
-      var target = GetBackupTargetFor(catalogueItem);
-      Targets[target.TargetId].Remove(catalogueItem);
+      var (found, id) = GetBackupTargetFor(catalogueItem);
+      if (found)
+        Targets[id].Remove(catalogueItem);
     }
 
     public void CloseTargets()
@@ -243,18 +231,18 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
       
     }
-    public IBackupTarget GetBackupTargetFor(ContentCatalogueEntry entry)
+    public (bool Found, int Id) GetBackupTargetFor(ContentCatalogueEntry entry)
     {
       foreach (var target in Targets)
       {
         if (target.KeySearchContent.ContainsKey(entry.Key))
         {
           if (target.KeySearchContent[entry.Key].FirstOrDefault(e => e.Key == entry.Key && e.Version == entry.Version) != null)
-            return BackupTargetFactory.GetCachedTarget(target.BackupTargetIndex);
+            return (true, target.BackupTargetIndex);
         }
       }
 
-      return null;
+      return (false, -1);
     }
 
     private void BuildContentHashesDictionary()
@@ -286,7 +274,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       var id = SearchTargets.Keys.Count == 0 ? 0 : SearchTargets.Keys.Max() + 1;
       var target = new TargetContentCatalogue(id);
-      Add(target);
+      AddTargetContentCatalogue(target);
       return id;
     }
 
