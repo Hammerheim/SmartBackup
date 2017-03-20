@@ -20,14 +20,14 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     private ContentCatalogueBinaryHandler binaryHandler;
     protected DirectoryInfo TargetDirectory { get; set; }
 
-    public ContentCatalogue()
+    protected ContentCatalogue()
     {
       SearchTargets = new Dictionary<int, TargetContentCatalogue>();
       Targets = new List<TargetContentCatalogue>();
       ContentHashes = new Dictionary<string, List<ContentCatalogueBinaryEntry>>();
     }
 
-    public ContentCatalogue(int maxSizeInMegaBytes, DirectoryInfo backupDirectory, string filenamePattern)
+    protected ContentCatalogue(int maxSizeInMegaBytes, DirectoryInfo backupDirectory, string filenamePattern)
       : this()
     {
       MaxSizeOfFiles = maxSizeInMegaBytes;
@@ -124,35 +124,31 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    public async Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern)
+    public static async Task<ContentCatalogue> Build(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern)
     {
-      this.BackupDirectory = backupDirectory.FullName;
-      this.MaxSizeOfFiles = expectedMaxSizeInMegaBytes;
-      this.FilenamePattern = filenamePattern;
+      var instance = await BuildFromExistingBackups(backupDirectory, expectedMaxSizeInMegaBytes, filenamePattern);
 
-      backupDirectory.Refresh();
-      if (!backupDirectory.Exists)
-        backupDirectory.Create();
+      return instance ?? new ContentCatalogue(expectedMaxSizeInMegaBytes, backupDirectory, filenamePattern);
+    }
 
-      TargetDirectory = backupDirectory;
-      if (binaryHandler == null)
-      {
-        binaryHandler = new ContentCatalogueBinaryHandler(GetContentCatalogueFilename(), new CompressionHandler());
-      }
-      var tempCatalogue = await binaryHandler.ReadContentCatalogue();
-      if (tempCatalogue != null)
-      {
-        Targets = tempCatalogue.Targets;
-        SearchTargets = tempCatalogue.SearchTargets;
-        MaxSizeOfFiles = tempCatalogue.MaxSizeOfFiles;
-        Version = tempCatalogue.Version;
-        RebuildSearchIndex();
-      }
+    private static async Task<ContentCatalogue> BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern)
+    {
+      var catalogueFile = new FileInfo(Path.Combine(backupDirectory.FullName, $"{filenamePattern}.ContentCatalogue.exe"));
+      var binaryHandler = new ContentCatalogueBinaryHandler(catalogueFile, new CompressionHandler());
 
-      foreach (var target in Targets)
-      {
-        BackupTargetFactory.InitializeTarget(target.BackupTargetIndex, target.CalculateTail(), MaxSizeOfFiles, backupDirectory, filenamePattern);
-      }
+      var instance = await binaryHandler.ReadContentCatalogue();
+
+      if (instance == null)
+        return null;
+
+      instance.BackupDirectory = backupDirectory.FullName;
+      instance.FilenamePattern = filenamePattern;
+      instance.MaxSizeOfFiles = expectedMaxSizeInMegaBytes;
+      instance.binaryHandler = binaryHandler;
+
+      instance.RebuildSearchIndex();
+
+      return instance;
     }
 
     internal void RemoveItem(ContentCatalogueBinaryEntry catalogueItem)

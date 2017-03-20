@@ -16,7 +16,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     ContentCatalogueEntry GetSpecificVersion(string key, int version);
 
-    Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern);
+    //Task BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern);
     IEnumerable<ContentCatalogueEntry> EnumerateContent();
 
     (bool Found, int Id) GetBackupTargetFor(ContentCatalogueEntry entry);

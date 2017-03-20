@@ -283,8 +283,16 @@ namespace Vibe.Hammer.SmartBackup
       if (catalogue == null)
       {
         progressCallback.Report(new ProgressReport("Reading content catalogue..."));
-        catalogue = new ContentCatalogue(fileSize, targetRoot, filenamePattern);
-        await catalogue.BuildFromExistingBackups(targetRoot, fileSize, filenamePattern);
+        catalogue = await ContentCatalogue.Build(targetRoot, fileSize, filenamePattern);
+        InitializeBinaryBackupTargets(targetRoot, fileSize, filenamePattern, catalogue);
+      }
+    }
+
+    private static void InitializeBinaryBackupTargets(DirectoryInfo target, int fileSize, string filenamePattern, ContentCatalogue catalogue)
+    {
+      foreach (var backupTargets in catalogue.Targets)
+      {
+        BackupTargetFactory.InitializeTarget(backupTargets.BackupTargetIndex, backupTargets.CalculateTail(), fileSize, target, filenamePattern);
       }
     }
 
