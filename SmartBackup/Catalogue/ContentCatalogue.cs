@@ -226,7 +226,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     {
       if (SearchTargets.ContainsKey(contentTargetId))
       {
-        var unclaimedLinks = SearchTargets[contentTargetId].Content.OfType<ContentCatalogueUnclaimedLinkEntry>();
+        var unclaimedLinks = SearchTargets[contentTargetId].Content.OfType<ContentCatalogueUnclaimedLinkEntry>().ToArray();
         foreach (var unclaimedLink in unclaimedLinks)
         {
           SearchTargets[contentTargetId].ReplaceContent(unclaimedLink, new ContentCatalogueLinkEntry(unclaimedLink));
