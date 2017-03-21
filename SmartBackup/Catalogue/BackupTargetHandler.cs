@@ -38,5 +38,25 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     public virtual void InitializeTargets(List<TargetContentCatalogue> catalogueTargets) => catalogueTargets.ForEach(target => TargetFactory.InitializeTarget(target.BackupTargetIndex, target.CalculateTail()));
 
     public virtual void CloseTargets() => TargetFactory.CloseAll();
+
+    public virtual IBackupTarget GetBackupTargetContainingFile(IContentCatalogue catalogue, FileInformation file)
+    {
+      var target = catalogue.Targets.FirstOrDefault(t => t.KeySearchContent.ContainsKey(file.FullyQualifiedFilename));
+      return target == null ? null : GetTarget(target.BackupTargetIndex);
+    }
+
+    public virtual IBackupTarget GetBackupTargetFor(IContentCatalogue catalogue, ContentCatalogueEntry entry)
+    {
+      foreach (var target in catalogue.Targets)
+      {
+        if (target.KeySearchContent.ContainsKey(entry.Key))
+        {
+          if (target.KeySearchContent[entry.Key].FirstOrDefault(e => e.Key == entry.Key && e.Version == entry.Version) != null)
+            return GetTarget(target.BackupTargetIndex);
+        }
+      }
+
+      return null;
+    }
   }
 }

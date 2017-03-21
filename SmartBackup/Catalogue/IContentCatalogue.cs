@@ -13,9 +13,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
   {
     IEnumerable<ContentCatalogueEntry> EnumerateContent();
 
-    (bool Found, int Id) GetBackupTargetFor(ContentCatalogueEntry entry);
-
-    (bool Found, int Id) GetBackupTargetContainingFile(FileInformation file);
     int AddBackupTarget();
     (bool Found, int TargetId) TryFindBackupTargetWithRoom(long requiredSpace);
 

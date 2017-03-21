@@ -12,5 +12,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     IBackupTarget GetTarget(int id, bool allowCreation);
     void InitializeTargets(List<TargetContentCatalogue> catalogueTargets);
     void CloseTargets();
+    IBackupTarget GetBackupTargetContainingFile(IContentCatalogue catalogue, FileInformation file);
+    IBackupTarget GetBackupTargetFor(IContentCatalogue catalogue, ContentCatalogueEntry entry);
   }
 }

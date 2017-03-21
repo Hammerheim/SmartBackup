@@ -61,12 +61,9 @@ namespace Vibe.Hammer.SmartBackup
       if (binaryContentItem == null)
         throw new FileNotFoundException();
 
-      var (found, id) = catalogue.GetBackupTargetContainingFile(item.SourceFileInfo);
-      if (!found)
-        throw new FileNotFoundException();
-
-      var backupTarget = targetHandler.GetTarget(id);
-      await backupTarget.ExtractFile(binaryContentItem, validateOnExtraction, extractionRoot);
+      var backupTarget = targetHandler.GetBackupTargetContainingFile(catalogue, item.SourceFileInfo);
+      if (backupTarget != null)
+        await backupTarget.ExtractFile(binaryContentItem, validateOnExtraction, extractionRoot);
     }
 
     private async Task ExtractLinkedFile(ContentCatalogueLinkEntry link, DirectoryInfo extractionRoot, bool validateOnExtraction)
@@ -84,12 +81,9 @@ namespace Vibe.Hammer.SmartBackup
       if (binaryContentItem == null)
         throw new FileNotFoundException();
 
-      var (found, id) = catalogue.GetBackupTargetContainingFile(item.SourceFileInfo);
-      if (!found)
-        throw new FileNotFoundException();
-
-      var backupTarget = targetHandler.GetTarget(id);
-      await backupTarget.ExtractLinkedFile(binaryContentItem, link, extractionRoot, validateOnExtraction);
+      var backupTarget = targetHandler.GetBackupTargetContainingFile(catalogue, item.SourceFileInfo);
+      if (backupTarget != null)
+        await backupTarget.ExtractLinkedFile(binaryContentItem, link, extractionRoot, validateOnExtraction);
     }
   }
 }

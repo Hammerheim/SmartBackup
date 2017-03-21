@@ -217,12 +217,11 @@ namespace Vibe.Hammer.SmartBackup
           continue;
         if (!binaryEntry.Verified)
         {
-          var (found, id) = catalogue.GetBackupTargetFor(entry);
-          if (found)
+          var backupTarget = targetHandler.GetBackupTargetFor(catalogue, entry);
+          if (backupTarget != null)
           {
             ReportProgress(progressCallback, $"Verifying: {binaryEntry.SourceFileInfo.FileName}");
 
-            var backupTarget = targetHandler.GetTarget(id);
             var (verificationOriginalExists, verificationSucceeded) = await backupTarget.VerifyContent(binaryEntry);
             binaryEntry.Verified = verificationSucceeded;
             if (verificationOriginalExists && !verificationSucceeded)

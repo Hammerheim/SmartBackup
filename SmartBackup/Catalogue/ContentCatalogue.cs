@@ -140,9 +140,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     public virtual void RemoveItem(ContentCatalogueBinaryEntry catalogueItem)
     {
-      var (found, id) = GetBackupTargetFor(catalogueItem);
-      if (found)
-        Targets[id].Remove(catalogueItem);
+      var target = targetHandler.GetBackupTargetFor(this, catalogueItem);
+      if (target != null)
+        Targets[target.TargetId].Remove(catalogueItem);
     }
 
     public virtual void Close()
@@ -151,12 +151,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       binaryHandler.CloseStream();
     }
     public virtual void WriteCatalogue() => binaryHandler.WriteContentCatalogue(this, false);
-
-    public virtual (bool Found, int Id) GetBackupTargetContainingFile(FileInformation file)
-    {
-      var target = Targets.FirstOrDefault(t => t.KeySearchContent.ContainsKey(file.FullyQualifiedFilename));
-      return (target != null, target?.BackupTargetIndex ?? -1); //target == null ? null : BackupTargetFactory.GetCachedTarget(target.BackupTargetIndex);
-    }
 
     public virtual IEnumerable<List<ContentCatalogueBinaryEntry>> GetAllPossibleDublicates(IProgress<ProgressReport> progressCallback)
     {
@@ -199,19 +193,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         }
       }
       
-    }
-    public virtual (bool Found, int Id) GetBackupTargetFor(ContentCatalogueEntry entry)
-    {
-      foreach (var target in Targets)
-      {
-        if (target.KeySearchContent.ContainsKey(entry.Key))
-        {
-          if (target.KeySearchContent[entry.Key].FirstOrDefault(e => e.Key == entry.Key && e.Version == entry.Version) != null)
-            return (true, target.BackupTargetIndex);
-        }
-      }
-
-      return (false, -1);
     }
 
     protected void BuildContentHashesDictionary()
