@@ -115,7 +115,7 @@ namespace Vibe.Hammer.SmartBackup
 
       Console.WriteLine($"Extracting files from {source} to {target.FullName}");
       var callbackObject = new Callback();
-      var extractor = new Extractor(catalogue, catalogue, new BackupTargetHandler(fileSize, filenamePattern, target.FullName));
+      var extractor = new Extractor(catalogue, new ExtractableContentCatalogue(catalogue), new BackupTargetHandler(fileSize, filenamePattern, target.FullName));
       await extractor.ExtractAll(target, validateOnExtraction, new Progress<ProgressReport>(callbackObject.ProgressCallback));
     }
 

@@ -9,7 +9,7 @@ using Vibe.Hammer.SmartBackup.Target;
 
 namespace Vibe.Hammer.SmartBackup.Catalogue
 {
-  public interface IContentCatalogue : IExtractableContentCatalogue
+  public interface IContentCatalogue 
   {
     IEnumerable<ContentCatalogueEntry> EnumerateContent();
 

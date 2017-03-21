@@ -277,25 +277,5 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         SearchTargets[backupTargetId].ReplaceContent(toBeReplaced, replaceWithThis);
       }
     }
-
-    public ContentCatalogueEntry GetNewestVersion(FileInformation file)
-    {
-      return ExtractableCatalogue.GetNewestVersion(file);
-    }
-
-    public ContentCatalogueEntry GetNewestVersion(string key)
-    {
-      return ExtractableCatalogue.GetNewestVersion(key);
-    }
-
-    public ContentCatalogueEntry GetSpecificVersion(string key, int version)
-    {
-      return ExtractableCatalogue.GetSpecificVersion(key, version);
-    }
-
-    public List<string> GetUniqueFileKeys()
-    {
-      return ExtractableCatalogue.GetUniqueFileKeys();
-    }
   }
 }

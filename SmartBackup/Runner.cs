@@ -291,7 +291,7 @@ namespace Vibe.Hammer.SmartBackup
         progressCallback.Report(new ProgressReport("Reading content catalogue..."));
         targetHandler = new BackupTargetHandler(fileSize, filenamePattern, targetRoot.FullName);
         catalogue = await ContentCatalogue.Build(targetRoot, fileSize, filenamePattern, targetHandler);
-        extractableCatalogue = catalogue as IExtractableContentCatalogue;
+        extractableCatalogue = new ExtractableContentCatalogue(catalogue);
       }
     }
 
