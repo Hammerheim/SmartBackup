@@ -18,6 +18,8 @@ namespace Vibe.Hammer.SmartBackup
     private int maxNumberOfFiles;
     private DateTime lastProgressReport;
     private IContentCatalogue catalogue;
+    private IExtractableContentCatalogue extractableCatalogue;
+    private IBackupTargetHandler targetHandler;
     private readonly DirectoryInfo root;
 
     public Runner(DirectoryInfo targetRoot)
@@ -58,7 +60,8 @@ namespace Vibe.Hammer.SmartBackup
       }
 
       catalogue.WriteCatalogue();
-      catalogue.CloseTargets();
+
+      catalogue.Close();
       await Task.Delay(500);
       progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
       return true;
@@ -73,7 +76,7 @@ namespace Vibe.Hammer.SmartBackup
       {
         currentFile++;
         ReportProgress(progressCallback, file);
-        var currentVersion = catalogue.GetNewestVersion(file);
+        var currentVersion = extractableCatalogue.GetNewestVersion(file);
 
         if (currentVersion == null)
         {
@@ -105,11 +108,11 @@ namespace Vibe.Hammer.SmartBackup
 
       if (!findTargetResult.Found)
       {
-        return catalogue.GetTarget(catalogue.AddBackupTarget(), true);
+        return targetHandler.GetTarget(catalogue.AddBackupTarget(), true);
       }
       else
       {
-        return catalogue.GetTarget(findTargetResult.TargetId);
+        return targetHandler.GetTarget(findTargetResult.TargetId);
       }
     }
 
@@ -159,7 +162,8 @@ namespace Vibe.Hammer.SmartBackup
         }
         ReportProgress(progressCallback, $"Found {numberOfDeletedFilesFound} deleted file(s)");
       }
-      catalogue.CloseTargets();
+      catalogue.Close();
+      catalogue = null;
       progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
       await Task.Delay(500);
       return true;
@@ -218,7 +222,7 @@ namespace Vibe.Hammer.SmartBackup
           {
             ReportProgress(progressCallback, $"Verifying: {binaryEntry.SourceFileInfo.FileName}");
 
-            var backupTarget = catalogue.GetTarget(id);
+            var backupTarget = targetHandler.GetTarget(id);
             var (verificationOriginalExists, verificationSucceeded) = await backupTarget.VerifyContent(binaryEntry);
             binaryEntry.Verified = verificationSucceeded;
             if (verificationOriginalExists && !verificationSucceeded)
@@ -232,7 +236,8 @@ namespace Vibe.Hammer.SmartBackup
       currentFile++;
       ReportProgress(progressCallback, $"Verification complete");
       catalogue.WriteCatalogue();
-      catalogue.CloseTargets();
+      catalogue.Close();
+      catalogue = null;
       await Task.Delay(500);
       return true;
     }
@@ -273,7 +278,8 @@ namespace Vibe.Hammer.SmartBackup
         ReportProgress(progressCallback, primaryEntry.SourceFileInfo);
       }
       catalogue.WriteCatalogue();
-      catalogue.CloseTargets();
+      catalogue.Close();
+      catalogue = null;
       await Task.Delay(500);
       return true;
     }
@@ -283,7 +289,9 @@ namespace Vibe.Hammer.SmartBackup
       if (catalogue == null)
       {
         progressCallback.Report(new ProgressReport("Reading content catalogue..."));
-        catalogue = await ContentCatalogue.Build(targetRoot, fileSize, filenamePattern);
+        targetHandler = new BackupTargetHandler(fileSize, filenamePattern, targetRoot.FullName);
+        catalogue = await ContentCatalogue.Build(targetRoot, fileSize, filenamePattern, targetHandler);
+        extractableCatalogue = catalogue as IExtractableContentCatalogue;
       }
     }
 
@@ -306,7 +314,7 @@ namespace Vibe.Hammer.SmartBackup
       foreach (var target in catalogue.Targets)
       {
         currentFile++;
-        var binaryTarget = catalogue.GetTarget(target.BackupTargetIndex);
+        var binaryTarget = targetHandler.GetTarget(target.BackupTargetIndex);
         var clonedConent = target.CloneContent();
         if (await binaryTarget.Defragment(clonedConent, progressCallback))
         {

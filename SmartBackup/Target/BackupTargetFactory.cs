@@ -15,6 +15,7 @@ namespace Vibe.Hammer.SmartBackup.Target
     private static int filesize;
     private static DirectoryInfo targetDirectory;
     private static string pattern;
+    private static object lockOnThis = new object();
 
     public BackupTargetFactory(int fileSizeInMB, DirectoryInfo backupDirectory, string filenamePattern)
     {
@@ -57,5 +58,17 @@ namespace Vibe.Hammer.SmartBackup.Target
     private static bool IsCached(int backupTargetIndex) => targets.ContainsKey(backupTargetIndex);
 
     private static void ClearCache() => targets.Clear();
+
+    public void CloseAll()
+    {
+      lock (lockOnThis)
+      {
+        foreach (var key in targets.Keys)
+        {
+          targets[key].CloseStream();
+        }
+        targets.Clear();
+      }
+    }
   }
 }

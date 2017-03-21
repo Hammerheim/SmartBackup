@@ -11,5 +11,6 @@ namespace Vibe.Hammer.SmartBackup.Target
     void InitializeTarget(int id, long tail);
     IBackupTarget GetTarget(int id);
     IBackupTarget GetTarget(int id, bool createNewIfMissing);
+    void CloseAll();
   }
 }

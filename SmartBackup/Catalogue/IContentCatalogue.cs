@@ -29,10 +29,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     string FilenamePattern { get; }
     string BackupDirectory { get; }
     List<TargetContentCatalogue> Targets { get; }
-    IBackupTarget GetTarget(int id);
-    IBackupTarget GetTarget(int id, bool allowCreation);
     void WriteCatalogue();
-    void CloseTargets();
+    void Close();
     void AddItem(int targetId, ContentCatalogueBinaryEntry catalogueItem);
     void RemoveItem(ContentCatalogueBinaryEntry catalogueItem);
     int CountTotalEntries();

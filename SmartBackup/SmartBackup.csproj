@@ -51,10 +51,12 @@
   <ItemGroup>
     <Compile Include="ArgumentParser.cs" />
     <Compile Include="Arguments.cs" />
+    <Compile Include="Catalogue\BackupTargetHandler.cs" />
     <Compile Include="Catalogue\ContentCatalogueBinaryEntry.cs" />
     <Compile Include="Catalogue\ContentCatalogueLinkEntry.cs" />
     <Compile Include="Catalogue\ContentCatalogueUnclaimedLinkEntry.cs" />
     <Compile Include="Catalogue\ExtractableContentCatalogue.cs" />
+    <Compile Include="Catalogue\IBackupTargetHandler.cs" />
     <Compile Include="Catalogue\IExtractableContentCatalogue.cs" />
     <Compile Include="Compression\DecompressionOfStreamFailedException.cs" />
     <Compile Include="Compression\FileCompressionAsArchiveFailedException.cs" />

@@ -20,8 +20,8 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     // private and protected fields
 
     private ContentCatalogueBinaryHandler binaryHandler;
-    private IBackupTargetFactory backupTargetFactory = null;
     private IExtractableContentCatalogue extractableCatalogue = null;
+    private IBackupTargetHandler targetHandler = null;
 
     protected DirectoryInfo TargetDirectory { get; set; }
     protected Dictionary<int, TargetContentCatalogue> SearchTargets { get; set; }
@@ -36,7 +36,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       ContentHashes = new Dictionary<string, List<ContentCatalogueBinaryEntry>>();
     }
 
-    protected ContentCatalogue(int maxSizeInMegaBytes, DirectoryInfo backupDirectory, string filenamePattern)
+    protected ContentCatalogue(int maxSizeInMegaBytes, DirectoryInfo backupDirectory, string filenamePattern, IBackupTargetHandler backupTargetHandler)
       : this()
     {
       MaxSizeOfFiles = maxSizeInMegaBytes;
@@ -45,19 +45,21 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       TargetDirectory = backupDirectory;
       FilenamePattern = filenamePattern;
       binaryHandler = new ContentCatalogueBinaryHandler(GetContentCatalogueFilename(), new CompressionHandler());
+      targetHandler = backupTargetHandler;
     }
 
-    public static async Task<ContentCatalogue> Build(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern)
+    public static async Task<ContentCatalogue> Build(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern, IBackupTargetHandler backupTargetHandler)
     {
       var instance = await BuildFromExistingBackups(backupDirectory, expectedMaxSizeInMegaBytes, filenamePattern);
 
-      return instance ?? new ContentCatalogue(expectedMaxSizeInMegaBytes, backupDirectory, filenamePattern);
+      return instance ?? new ContentCatalogue(expectedMaxSizeInMegaBytes, backupDirectory, filenamePattern, backupTargetHandler);
     }
 
     private static async Task<ContentCatalogue> BuildFromExistingBackups(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern)
     {
       var catalogueFile = new FileInfo(Path.Combine(backupDirectory.FullName, $"{filenamePattern}.ContentCatalogue.exe"));
       var binaryHandler = new ContentCatalogueBinaryHandler(catalogueFile, new CompressionHandler());
+      var backupTargetHandler = new BackupTargetHandler(expectedMaxSizeInMegaBytes, filenamePattern, backupDirectory.FullName);
 
       var instance = await binaryHandler.ReadContentCatalogue();
 
@@ -68,9 +70,10 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       instance.FilenamePattern = filenamePattern;
       instance.MaxSizeOfFiles = expectedMaxSizeInMegaBytes;
       instance.binaryHandler = binaryHandler;
+      instance.targetHandler = backupTargetHandler;
 
       instance.RebuildSearchIndex();
-      instance.RebuildTargets();
+      backupTargetHandler.InitializeTargets(instance.Targets);
 
       return instance;
     }
@@ -96,16 +99,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     #endregion
 
-    protected IBackupTargetFactory TargetFactory
-    {
-      get
-      {
-        if (backupTargetFactory == null)
-          backupTargetFactory = new BackupTargetFactory(MaxSizeOfFiles, new DirectoryInfo(BackupDirectory), FilenamePattern);
-        return backupTargetFactory;
-      }
-    }
-
     protected IExtractableContentCatalogue ExtractableCatalogue
     {
       get
@@ -115,8 +108,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         return extractableCatalogue;
       }
     }
-
-    private void RebuildTargets() => Targets.ForEach(target => TargetFactory.InitializeTarget(target.BackupTargetIndex, target.CalculateTail()));
 
     public virtual void AddItem(int targetId, ContentCatalogueBinaryEntry catalogueItem)
     {
@@ -136,43 +127,7 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       BuildContentHashesDictionary();
     }
 
-    //public virtual ContentCatalogueEntry GetNewestVersion(FileInformation file) => GetNewestVersion(file.FullyQualifiedFilename);
     private FileInfo GetContentCatalogueFilename() => new FileInfo(Path.Combine(TargetDirectory.FullName, $"{FilenamePattern}.ContentCatalogue.exe"));
-
-    //public virtual ContentCatalogueEntry GetNewestVersion(string key)
-    //{
-    //  ContentCatalogueEntry newestItem = null;
-    //  foreach (var catalogue in Targets)
-    //  {
-    //    if (catalogue.KeySearchContent.ContainsKey(key))
-    //    {
-    //      foreach (var item in catalogue.KeySearchContent[key])
-    //      {
-    //        if (newestItem == null)
-    //          newestItem = item;
-    //        if (item.Version > newestItem.Version)
-    //          newestItem = item;
-    //      }
-    //    }
-    //  }
-    //  return newestItem;
-    //}
-
-    //public virtual ContentCatalogueEntry GetSpecificVersion(string key, int version)
-    //{
-    //  foreach (var catalogue in Targets)
-    //  {
-    //    if (catalogue.KeySearchContent.ContainsKey(key))
-    //    {
-    //      foreach (var item in catalogue.KeySearchContent[key])
-    //      {
-    //        if (item.Version == version)
-    //          return item;
-    //      }
-    //    }
-    //  }
-    //  return null;
-    //}
 
     private void AddTargetContentCatalogue(TargetContentCatalogue catalogue)
     {
@@ -183,8 +138,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-
-
     public virtual void RemoveItem(ContentCatalogueBinaryEntry catalogueItem)
     {
       var (found, id) = GetBackupTargetFor(catalogueItem);
@@ -192,14 +145,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         Targets[id].Remove(catalogueItem);
     }
 
-    public virtual void CloseTargets()
+    public virtual void Close()
     {
-      foreach (var target in Targets)
-      {
-        var binaryTarget = TargetFactory.GetTarget(target.BackupTargetIndex, false);
-        if (binaryTarget != null)
-          binaryTarget.CloseStream();
-      }
+      targetHandler.CloseTargets();
       binaryHandler.CloseStream();
     }
     public virtual void WriteCatalogue() => binaryHandler.WriteContentCatalogue(this, false);
@@ -209,24 +157,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       var target = Targets.FirstOrDefault(t => t.KeySearchContent.ContainsKey(file.FullyQualifiedFilename));
       return (target != null, target?.BackupTargetIndex ?? -1); //target == null ? null : BackupTargetFactory.GetCachedTarget(target.BackupTargetIndex);
     }
-
-    //public virtual List<string> GetUniqueFileKeys()
-    //{
-    //  Dictionary<string, string> keys = new Dictionary<string, string>();
-    //  List<string> returnThis = new List<string>();
-    //  foreach (var target in Targets)
-    //  {
-    //    foreach (var file in target.Content)
-    //    {
-    //      if (!keys.ContainsKey(file.SourceFileInfo.FullyQualifiedFilename))
-    //      {
-    //        keys.Add(file.SourceFileInfo.FullyQualifiedFilename, string.Empty);
-    //        returnThis.Add(file.SourceFileInfo.FullyQualifiedFilename);
-    //      }
-    //    }
-    //  }
-    //  return returnThis;
-    //}
 
     public virtual IEnumerable<List<ContentCatalogueBinaryEntry>> GetAllPossibleDublicates(IProgress<ProgressReport> progressCallback)
     {
@@ -347,10 +277,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         SearchTargets[backupTargetId].ReplaceContent(toBeReplaced, replaceWithThis);
       }
     }
-
-    public virtual IBackupTarget GetTarget(int id) => GetTarget(id, false);
-
-    public virtual IBackupTarget GetTarget(int id, bool allowCreation) => TargetFactory.GetTarget(id, allowCreation);
 
     public ContentCatalogueEntry GetNewestVersion(FileInformation file)
     {
