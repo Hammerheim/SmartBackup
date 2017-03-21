@@ -20,9 +20,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     // private and protected fields
 
     private ContentCatalogueBinaryHandler binaryHandler;
-    private IExtractableContentCatalogue extractableCatalogue = null;
-    private IBackupTargetHandler targetHandler = null;
-
     protected DirectoryInfo TargetDirectory { get; set; }
     protected Dictionary<int, TargetContentCatalogue> SearchTargets { get; set; }
     protected Dictionary<string, List<ContentCatalogueBinaryEntry>> ContentHashes { get; set; }
@@ -45,7 +42,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       TargetDirectory = backupDirectory;
       FilenamePattern = filenamePattern;
       binaryHandler = new ContentCatalogueBinaryHandler(GetContentCatalogueFilename(), new CompressionHandler());
-      targetHandler = backupTargetHandler;
     }
 
     public static async Task<ContentCatalogue> Build(DirectoryInfo backupDirectory, int expectedMaxSizeInMegaBytes, string filenamePattern, IBackupTargetHandler backupTargetHandler)
@@ -70,7 +66,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       instance.FilenamePattern = filenamePattern;
       instance.MaxSizeOfFiles = expectedMaxSizeInMegaBytes;
       instance.binaryHandler = binaryHandler;
-      instance.targetHandler = backupTargetHandler;
 
       instance.RebuildSearchIndex();
       backupTargetHandler.InitializeTargets(instance.Targets);
@@ -98,16 +93,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     public virtual string FilenamePattern { get; set; }
 
     #endregion
-
-    protected IExtractableContentCatalogue ExtractableCatalogue
-    {
-      get
-      {
-        if (extractableCatalogue == null)
-          extractableCatalogue = new ExtractableContentCatalogue(this);
-        return extractableCatalogue;
-      }
-    }
 
     public virtual void AddItem(int targetId, ContentCatalogueBinaryEntry catalogueItem)
     {
@@ -140,12 +125,17 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
 
     public virtual void RemoveItem(ContentCatalogueBinaryEntry catalogueItem)
     {
-      var target = targetHandler.GetBackupTargetFor(this, catalogueItem);
-      if (target != null)
-        Targets[target.TargetId].Remove(catalogueItem);
+      foreach (var target in Targets)
+      {
+        if (target.KeySearchContent.ContainsKey(catalogueItem.Key))
+        {
+          if (target.KeySearchContent[catalogueItem.Key].FirstOrDefault(e => e.Key == catalogueItem.Key && e.Version == catalogueItem.Version) != null)
+            Targets[target.BackupTargetIndex].Remove(catalogueItem);
+        }
+      }
     }
 
-    public virtual void Close()
+    public virtual void Close(IBackupTargetHandler targetHandler)
     {
       targetHandler.CloseTargets();
       binaryHandler.CloseStream();
@@ -162,25 +152,6 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
         if (ContentHashes[key].Count > 1)
           yield return ContentHashes[key];
       }
-    }
-
-    public virtual IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks()
-    {
-      var entries = new List<ContentCatalogueUnclaimedLinkEntry>();
-      foreach (var target in Targets)
-      {
-        entries.AddRange(target.Content.OfType<ContentCatalogueUnclaimedLinkEntry>());
-      }
-      return entries;
-    }
-
-    public virtual IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks(int backupTargetId)
-    {
-      if (SearchTargets.ContainsKey(backupTargetId))
-      {
-        return SearchTargets[backupTargetId].Content.OfType<ContentCatalogueUnclaimedLinkEntry>();
-      }
-      return new List<ContentCatalogueUnclaimedLinkEntry>();
     }
 
     public virtual void ReplaceBinaryEntryWithLink(ContentCatalogueBinaryEntry binary, ContentCatalogueLinkEntry link)
@@ -251,12 +222,21 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
       }
     }
 
-    public virtual void ReplaceContent(int backupTargetId, ContentCatalogueEntry toBeReplaced, ContentCatalogueEntry replaceWithThis)
+    public void ConvertAllUnclaimedLinksToClaimedLinks(int contentTargetId)
     {
-      if (SearchTargets.ContainsKey(backupTargetId))
+      if (SearchTargets.ContainsKey(contentTargetId))
       {
-        SearchTargets[backupTargetId].ReplaceContent(toBeReplaced, replaceWithThis);
+        var unclaimedLinks = SearchTargets[contentTargetId].Content.OfType<ContentCatalogueUnclaimedLinkEntry>();
+        foreach (var unclaimedLink in unclaimedLinks)
+        {
+          SearchTargets[contentTargetId].ReplaceContent(unclaimedLink, new ContentCatalogueLinkEntry(unclaimedLink));
+        }
       }
+    }
+
+    public int CountUnclaimedLinks()
+    {
+      return Targets.Sum(target => target.Content.OfType<ContentCatalogueUnclaimedLinkEntry>().Count());
     }
   }
 }

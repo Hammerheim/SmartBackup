@@ -16,9 +16,11 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     int AddBackupTarget();
     (bool Found, int TargetId) TryFindBackupTargetWithRoom(long requiredSpace);
 
-    IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks();
-    IEnumerable<ContentCatalogueUnclaimedLinkEntry> GetUnclaimedLinks(int backupTargetId);
-    void ReplaceContent(int backupTargetId, ContentCatalogueEntry toBeReplaced, ContentCatalogueEntry replaceWithThis);
+    IEnumerable<List<ContentCatalogueBinaryEntry>> GetAllPossibleDublicates(IProgress<ProgressReport> progressCallback);
+
+    void ConvertAllUnclaimedLinksToClaimedLinks(int contentTargetId);
+    int CountUnclaimedLinks();
+    void ReplaceBinaryEntryWithLink(ContentCatalogueBinaryEntry binary, ContentCatalogueLinkEntry link);
 
     // Content
     int MaxSizeOfFiles { get; }
@@ -27,11 +29,9 @@ namespace Vibe.Hammer.SmartBackup.Catalogue
     string BackupDirectory { get; }
     List<TargetContentCatalogue> Targets { get; }
     void WriteCatalogue();
-    void Close();
+    void Close(IBackupTargetHandler targetHandler);
     void AddItem(int targetId, ContentCatalogueBinaryEntry catalogueItem);
     void RemoveItem(ContentCatalogueBinaryEntry catalogueItem);
     int CountTotalEntries();
-    IEnumerable<List<ContentCatalogueBinaryEntry>> GetAllPossibleDublicates(IProgress<ProgressReport> progressCallback);
-    void ReplaceBinaryEntryWithLink(ContentCatalogueBinaryEntry binary, ContentCatalogueLinkEntry link);
   }
 }

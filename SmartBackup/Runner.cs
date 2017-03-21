@@ -60,8 +60,7 @@ namespace Vibe.Hammer.SmartBackup
       }
 
       catalogue.WriteCatalogue();
-
-      catalogue.Close();
+      catalogue.Close(targetHandler);
       await Task.Delay(500);
       progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
       return true;
@@ -162,7 +161,7 @@ namespace Vibe.Hammer.SmartBackup
         }
         ReportProgress(progressCallback, $"Found {numberOfDeletedFilesFound} deleted file(s)");
       }
-      catalogue.Close();
+      catalogue.Close(targetHandler);
       catalogue = null;
       progressCallback.Report(new ProgressReport("Backup complete", currentFile, currentFile));
       await Task.Delay(500);
@@ -235,7 +234,7 @@ namespace Vibe.Hammer.SmartBackup
       currentFile++;
       ReportProgress(progressCallback, $"Verification complete");
       catalogue.WriteCatalogue();
-      catalogue.Close();
+      catalogue.Close(targetHandler);
       catalogue = null;
       await Task.Delay(500);
       return true;
@@ -277,7 +276,7 @@ namespace Vibe.Hammer.SmartBackup
         ReportProgress(progressCallback, primaryEntry.SourceFileInfo);
       }
       catalogue.WriteCatalogue();
-      catalogue.Close();
+      catalogue.Close(targetHandler);
       catalogue = null;
       await Task.Delay(500);
       return true;
@@ -299,13 +298,12 @@ namespace Vibe.Hammer.SmartBackup
       await InitializeContentCatalogue(targetRoot, fileSize, filenamePattern, progressCallback);
 
       currentFile = 0;
-      var allUnclaimedLinks = catalogue.GetUnclaimedLinks();
-      if (!allUnclaimedLinks.Any())
+      maxNumberOfFiles = catalogue.CountUnclaimedLinks();
+      if (maxNumberOfFiles == 0)
       {
         progressCallback.Report(new ProgressReport("There are no space that must be reclaimed."));
         return true;
       }
-      maxNumberOfFiles = allUnclaimedLinks.Count();
       lastProgressReport = DateTime.Now;
 
       progressCallback.Report(new ProgressReport("Reclaiming space..."));
@@ -318,21 +316,12 @@ namespace Vibe.Hammer.SmartBackup
         if (await binaryTarget.Defragment(clonedConent, progressCallback))
         {
           target.PromoteClonedContent(clonedConent);
-          ConvertAllUnclaimedLinksToClaimedLinks(target.BackupTargetIndex);
+          catalogue.ConvertAllUnclaimedLinksToClaimedLinks(target.BackupTargetIndex);
           catalogue.WriteCatalogue();
         }
       }
       catalogue.WriteCatalogue();
       return true;
-    }
-
-    private void ConvertAllUnclaimedLinksToClaimedLinks(int id)
-    {
-      var unclaimedLinks = catalogue.GetUnclaimedLinks(id).ToArray();
-      foreach (var unclaimedLink in unclaimedLinks)
-      {
-        catalogue.ReplaceContent(id, unclaimedLink, new ContentCatalogueLinkEntry(unclaimedLink));
-      }
     }
   }
 }
